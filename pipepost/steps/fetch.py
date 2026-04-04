@@ -4,23 +4,42 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import TYPE_CHECKING
 
 import httpx
 from bs4 import BeautifulSoup
 
-from pipepost.core.context import Article, FlowContext
 from pipepost.core.step import Step
+from pipepost.exceptions import FetchError
+
+
+if TYPE_CHECKING:
+    from pipepost.core.context import Article, FlowContext
 
 logger = logging.getLogger(__name__)
 
+_USER_AGENT = "PipePost/1.0 (+https://github.com/DenSul/pipepost)"
+_MAX_RETRIES = 3
+_BACKOFF_FACTOR = 0.5
+_RETRY_STATUSES = {429, 500, 502, 503, 504}
+
+
+def _build_retry_transport() -> httpx.AsyncHTTPTransport:
+    """Build an httpx transport with exponential backoff retry."""
+    return httpx.AsyncHTTPTransport(retries=_MAX_RETRIES)
+
 
 class FetchStep(Step):
+    """Download article, extract content as markdown, get og:image."""
+
     name = "fetch"
 
-    def __init__(self, max_chars: int = 20000):
+    def __init__(self, max_chars: int = 20000, timeout: float = 30.0) -> None:
         self.max_chars = max_chars
+        self.timeout = timeout
 
     async def execute(self, ctx: FlowContext) -> FlowContext:
+        """Fetch the first viable candidate's content."""
         if not ctx.candidates:
             ctx.add_error("No candidates to fetch")
             return ctx
@@ -29,44 +48,65 @@ class FetchStep(Step):
             if candidate.url in ctx.existing_urls:
                 continue
             try:
-                content = await self._fetch_and_convert(candidate.url)
-                if len(content) < 200:
-                    logger.warning("Article too short (%d): %s", len(content), candidate.url)
-                    continue
-                cover = await self._extract_og_image(candidate.url)
-                ctx.selected = Article(
-                    url=candidate.url,
-                    title=candidate.title,
-                    content=content,
-                    cover_image=cover,
-                    metadata=candidate.metadata,
+                article = await self._fetch_article(
+                    candidate.url,
+                    candidate.title,
+                    candidate.metadata,
                 )
+                if len(article.content) < 200:
+                    logger.warning(
+                        "Article too short (%d): %s",
+                        len(article.content),
+                        candidate.url,
+                    )
+                    continue
+                ctx.selected = article
                 return ctx
-            except Exception as e:
-                logger.warning("Failed to fetch %s: %s", candidate.url, e)
+            except FetchError as exc:
+                logger.warning("Failed to fetch %s: %s", candidate.url, exc)
+            except Exception as exc:
+                logger.warning("Unexpected error fetching %s: %s", candidate.url, exc)
 
         ctx.add_error("All candidates unfetchable")
         return ctx
 
-    async def _fetch_and_convert(self, url: str) -> str:
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-            resp = await client.get(url, headers={"User-Agent": "PipePost/1.0"})
-            resp.raise_for_status()
-            return self._html_to_markdown(resp.text)
+    async def _fetch_article(self, url: str, title: str, metadata: dict[str, object]) -> Article:
+        """Fetch URL content and convert to Article."""
+        from pipepost.core.context import Article
 
-    async def _extract_og_image(self, url: str) -> str | None:
-        try:
-            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-                resp = await client.get(url, headers={"User-Agent": "PipePost/1.0"})
+        transport = _build_retry_transport()
+        async with httpx.AsyncClient(
+            transport=transport,
+            timeout=self.timeout,
+            follow_redirects=True,
+        ) as client:
+            try:
+                resp = await client.get(url, headers={"User-Agent": _USER_AGENT})
                 resp.raise_for_status()
-                soup = BeautifulSoup(resp.text, "html.parser")
-                for attr in ("property", "name"):
-                    tag = soup.find("meta", attrs={attr: "og:image"})
-                    if tag and tag.get("content"):
-                        return str(tag["content"])
-                return None
-        except Exception:
-            return None
+            except httpx.HTTPStatusError as exc:
+                raise FetchError(f"HTTP {exc.response.status_code} for {url}") from exc
+            except httpx.RequestError as exc:
+                raise FetchError(f"Request failed for {url}: {exc}") from exc
+
+            content = self._html_to_markdown(resp.text)
+            cover = self._extract_og_image_from_html(resp.text)
+
+        return Article(
+            url=url,
+            title=title,
+            content=content,
+            cover_image=cover,
+            metadata=dict(metadata),
+        )
+
+    def _extract_og_image_from_html(self, html: str) -> str | None:
+        """Extract og:image from already-fetched HTML."""
+        soup = BeautifulSoup(html, "html.parser")
+        for attr in ("property", "name"):
+            tag = soup.find("meta", attrs={attr: "og:image"})
+            if tag and hasattr(tag, "get") and tag.get("content"):
+                return str(tag.get("content"))
+        return None
 
     def _html_to_markdown(self, html: str) -> str:
         """Simple HTML to markdown conversion."""

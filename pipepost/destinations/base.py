@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from pipepost.core.context import PublishResult, TranslatedArticle
+
+if TYPE_CHECKING:
+    from pipepost.core.context import PublishResult, TranslatedArticle
 
 
 class Destination(ABC):
@@ -16,7 +19,7 @@ class Destination(ABC):
     async def publish(self, article: TranslatedArticle) -> PublishResult:
         """Publish an article. Return result."""
 
-    async def check_duplicate(self, url: str) -> bool:
+    async def check_duplicate(self, url: str) -> bool:  # noqa: ARG002
         """Check if article with this source URL already exists."""
         return False
 

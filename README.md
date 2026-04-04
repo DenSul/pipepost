@@ -1,8 +1,8 @@
 # 🚀 PipePost
 
-**Open-source AI content curation pipeline** — Scout, translate, and publish tech articles automatically.
+**Open-source AI content curation pipeline** — Scout, translate, and publish articles from any domain automatically.
 
-PipePost discovers articles from sources like HackerNews, Reddit, and RSS feeds, translates them to your target language using AI, and publishes to your blog or CMS.
+PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and search engines, translates them to your target language using AI, and publishes to your blog or CMS. Works for any niche — tech, business, health, lifestyle, and more.
 
 ## Features
 
@@ -64,6 +64,52 @@ my_flow = Flow(
 )
 ```
 
+## Use Cases
+
+### Tech & Programming
+```yaml
+sources:
+  - name: tech-news
+    type: search
+    queries:
+      - "latest AI research papers"
+      - "golang best practices 2026"
+      - "python async programming"
+```
+
+### Business & Startups
+```yaml
+sources:
+  - name: business-news
+    type: search
+    queries:
+      - "startup funding news"
+      - "business strategy trends"
+      - "fintech innovations"
+```
+
+### Health & Science
+```yaml
+sources:
+  - name: health-news
+    type: search
+    queries:
+      - "health research breakthroughs"
+      - "nutrition science news"
+      - "mental health studies"
+```
+
+### Lifestyle & Productivity
+```yaml
+sources:
+  - name: lifestyle
+    type: search
+    queries:
+      - "productivity tips"
+      - "remote work trends"
+      - "personal development"
+```
+
 ## Sources
 
 | Source | Type | Description |
@@ -99,11 +145,11 @@ sources:
   - name: my-blog
     type: rss
     url: https://example.com/feed.xml
-  - name: tech-news
+  - name: daily-search
     type: search
     queries:
-      - "latest AI research papers"
-      - "golang best practices 2026"
+      - "latest news in your niche"
+      - "trending articles today"
 
 destination:
   type: webhook
@@ -116,6 +162,8 @@ translate:
   target_lang: ru
   min_ratio: 0.8
 ```
+
+See [examples/pipepost.yaml](examples/pipepost.yaml) for a complete configuration example.
 
 ## Adding a Custom Source
 
@@ -172,6 +220,17 @@ PipePost uses [LiteLLM](https://github.com/BerriAI/litellm) for translation, sup
 
 Set via `PIPEPOST_MODEL` env var or in YAML config.
 
+## Docker
+
+```bash
+# Build and run
+docker compose up -d
+
+# Or build manually
+docker build -t pipepost .
+docker run -v ./pipepost.yaml:/app/config/pipepost.yaml pipepost run curate
+```
+
 ## Development
 
 ```bash
@@ -182,6 +241,9 @@ pip install -e ".[dev]"
 
 # Lint
 ruff check pipepost/
+
+# Type check
+mypy --strict pipepost/
 
 # Test
 pytest tests/

@@ -23,6 +23,7 @@ from pipepost.core.registry import (
 )
 from pipepost.core.step import Step
 
+
 __all__ = [
     "Article",
     "Candidate",

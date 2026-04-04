@@ -1,0 +1,14 @@
+# PipePost — docker compose configuration
+services:
+  pipepost:
+    build: .
+    container_name: pipepost
+    restart: unless-stopped
+    volumes:
+      - ./examples/pipepost.yaml:/app/config/pipepost.yaml:ro
+      - ./output:/app/output
+    environment:
+      - PIPEPOST_CONFIG=/app/config/pipepost.yaml
+      - PIPEPOST_MODEL=${PIPEPOST_MODEL:-deepseek/deepseek-chat}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    command: ["run", "curate", "--source", "hackernews"]

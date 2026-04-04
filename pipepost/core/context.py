@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 
 @dataclass
@@ -15,7 +14,7 @@ class Candidate:
     snippet: str = ""
     score: float = 0.0
     source_name: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -26,7 +25,7 @@ class Article:
     title: str
     content: str  # markdown
     cover_image: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -41,7 +40,7 @@ class TranslatedArticle:
     source_name: str = ""
     tags: list[str] = field(default_factory=list)
     cover_image: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -64,7 +63,7 @@ class FlowContext:
     translated: TranslatedArticle | None = None
     published: PublishResult | None = None
     errors: list[str] = field(default_factory=list)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
     # Configuration injected at flow start
     source_name: str = ""
@@ -73,7 +72,9 @@ class FlowContext:
 
     @property
     def has_errors(self) -> bool:
+        """Return True if any errors have been recorded."""
         return bool(self.errors)
 
     def add_error(self, msg: str) -> None:
+        """Record an error message."""
         self.errors.append(msg)

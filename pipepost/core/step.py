@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from pipepost.core.context import FlowContext
+
+if TYPE_CHECKING:
+    from pipepost.core.context import FlowContext
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +22,7 @@ class Step(ABC):
     async def execute(self, ctx: FlowContext) -> FlowContext:
         """Execute this step, transforming the context."""
 
-    def should_skip(self, ctx: FlowContext) -> bool:
+    def should_skip(self, ctx: FlowContext) -> bool:  # noqa: ARG002
         """Return True to skip this step."""
         return False
 
