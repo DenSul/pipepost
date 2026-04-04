@@ -1,0 +1,86 @@
+# PipePost configuration example
+# Copy to project root as pipepost.yaml or set PIPEPOST_CONFIG env var
+
+# Content sources — where to find articles
+sources:
+  # HackerNews top stories
+  - name: hackernews
+    type: hackernews
+    min_score: 100
+
+  # Reddit top posts from specific subreddits
+  - name: reddit-tech
+    type: reddit
+    subreddits:
+      - programming
+      - golang
+      - python
+    min_score: 200
+
+  # RSS/Atom feed
+  - name: my-blog
+    type: rss
+    url: https://example.com/feed.xml
+    max_items: 10
+
+  # DuckDuckGo search — tech niche
+  - name: tech-search
+    type: search
+    queries:
+      - "latest AI research papers"
+      - "golang best practices 2026"
+
+  # DuckDuckGo search — business niche
+  - name: business-search
+    type: search
+    queries:
+      - "startup funding news"
+      - "business strategy trends"
+
+  # DuckDuckGo search — health niche
+  - name: health-search
+    type: search
+    queries:
+      - "health research breakthroughs"
+      - "nutrition science news"
+
+  # DuckDuckGo search — lifestyle niche
+  - name: lifestyle-search
+    type: search
+    queries:
+      - "productivity tips"
+      - "remote work trends"
+
+# Publish destination
+destination:
+  # Options: webhook, markdown
+  type: webhook
+  url: https://myblog.com/api/posts/auto-publish
+  headers:
+    Authorization: "Bearer your-token-here"
+    Content-Type: "application/json"
+
+  # For markdown output:
+  # type: markdown
+  # output_dir: ./output
+
+# Translation settings
+translate:
+  # Any LiteLLM-supported model
+  model: deepseek/deepseek-chat
+  target_lang: ru
+  max_tokens: 16384
+  min_ratio: 0.5
+
+# Fetch settings
+fetch:
+  max_chars: 20000
+  timeout: 30.0
+
+# Validation settings
+validate:
+  min_content_len: 300
+  min_ratio: 0.3
+
+# Debug mode
+verbose: false

@@ -18,6 +18,7 @@ from pipepost.core.registry import (
 
 
 def _setup_logging(verbose: bool = False) -> None:
+    """Configure logging to stderr."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
@@ -75,7 +76,7 @@ def cmd_flows() -> None:
 @click.option("--source", "-s", help="Source name")
 @click.option("--dest", "-d", default="default", help="Destination name")
 @click.option("--lang", "-l", default="ru", help="Target language")
-def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:
+def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:  # noqa: ARG001
     """Run a pipeline flow."""
     try:
         flow = get_flow(flow_name)
@@ -91,7 +92,7 @@ def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:
         target_lang=lang,
     )
 
-    result = asyncio.run(flow.run(ctx))
+    result = asyncio.run(flow.run(ctx))  # type: ignore[attr-defined]
 
     if result.published and result.published.success:
         click.echo(f"✅ Published: {result.published.slug}")
