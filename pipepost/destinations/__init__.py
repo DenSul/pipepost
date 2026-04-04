@@ -1,0 +1,1 @@
+"""PipePost destinations — publish targets."""
