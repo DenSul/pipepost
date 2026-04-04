@@ -1,4 +1,5 @@
 """Translate article content using LLM."""
+
 from __future__ import annotations
 
 import logging
@@ -12,8 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class TranslateStep(Step):
-    """Translate an article via LiteLLM, filling ctx.translated."""
-
     name = "translate"
 
     def __init__(
@@ -22,7 +21,7 @@ class TranslateStep(Step):
         target_lang: str = "ru",
         max_tokens: int = 16384,
         min_ratio: float = 0.5,
-    ) -> None:
+    ):
         self.model = model or os.getenv("PIPEPOST_MODEL", "deepseek/deepseek-chat")
         self.target_lang = target_lang
         self.max_tokens = max_tokens
@@ -58,23 +57,23 @@ class TranslateStep(Step):
             ctx.add_error("Failed to parse translation output")
             return ctx
 
-        title_ru = parsed.get("title_ru", article.title)
-        content_ru = parsed.get("content_ru", "")
+        title_translated = parsed.get("title_ru", article.title)
+        content_translated = parsed.get("content_ru", "")
         tags = parsed.get("tags", ["tech"])
 
-        if len(content_ru) < len(article.content) * self.min_ratio:
+        if len(content_translated) < len(article.content) * self.min_ratio:
             logger.warning(
                 "Translation too short: %d vs %d (ratio: %.1f%%)",
-                len(content_ru),
+                len(content_translated),
                 len(article.content),
-                len(content_ru) / max(1, len(article.content)) * 100,
+                len(content_translated) / max(1, len(article.content)) * 100,
             )
 
         ctx.translated = TranslatedArticle(
             title=article.title,
-            title_translated=title_ru,
+            title_translated=title_translated,
             content=article.content,
-            content_translated=content_ru,
+            content_translated=content_translated,
             source_url=article.url,
             source_name=ctx.source_name,
             tags=tags,
@@ -83,8 +82,9 @@ class TranslateStep(Step):
         return ctx
 
     def _build_prompt(self, title: str, content: str) -> str:
+        lang = self.target_lang
         return (
-            f"Translate the following tech article from English to {self.target_lang}.\n\n"
+            f"Translate the following tech article from English to {lang}.\n\n"
             "RULES:\n"
             "- Full paragraph-by-paragraph translation (NOT a summary)\n"
             "- Keep all code blocks, URLs, and technical terms unchanged\n"
@@ -99,7 +99,6 @@ class TranslateStep(Step):
         )
 
     def _parse_output(self, raw: str) -> dict[str, str | list[str]] | None:
-        """Parse ===SECTION=== markers from LLM output."""
         raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL)
         parts = re.split(r"===([A-Z_]+)===", raw)
         sections: dict[str, str] = {}

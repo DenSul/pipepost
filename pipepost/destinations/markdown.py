@@ -1,4 +1,5 @@
 """Markdown file destination — save articles as .md files."""
+
 from __future__ import annotations
 
 import logging
@@ -12,11 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class MarkdownDestination(Destination):
-    """Save translated articles as local markdown files with frontmatter."""
-
     name = "markdown"
 
-    def __init__(self, output_dir: str = "./output") -> None:
+    def __init__(self, output_dir: str = "./output"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -24,15 +23,13 @@ class MarkdownDestination(Destination):
         slug = self._slugify(article.title_translated or article.title)
         filepath = self.output_dir / f"{slug}.md"
 
-        content = (
-            f"---\n"
-            f'title: "{article.title_translated}"\n'
+        frontmatter = (
+            f'---\ntitle: "{article.title_translated}"\n'
             f'title_en: "{article.title}"\n'
             f"source: {article.source_url}\n"
-            f"tags: {article.tags}\n"
-            f"---\n\n"
-            f"{article.content_translated}"
+            f"tags: {article.tags}\n---\n\n"
         )
+        content = frontmatter + article.content_translated
 
         filepath.write_text(content, encoding="utf-8")
         logger.info("Saved to %s", filepath)
@@ -40,7 +37,6 @@ class MarkdownDestination(Destination):
         return PublishResult(success=True, slug=slug, url=str(filepath))
 
     def _slugify(self, text: str) -> str:
-        """Convert text to a filesystem-safe slug."""
         text = text.lower().strip()
         text = re.sub(r"[^\w\s-]", "", text)
         text = re.sub(r"[\s_]+", "-", text)

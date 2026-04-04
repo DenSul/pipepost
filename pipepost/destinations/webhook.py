@@ -1,4 +1,5 @@
 """Webhook destination — POST article to any URL."""
+
 from __future__ import annotations
 
 import logging
@@ -12,11 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class WebhookDestination(Destination):
-    """POST translated article as JSON to a webhook URL."""
-
     name = "webhook"
 
-    def __init__(self, url: str, headers: dict[str, str] | None = None) -> None:
+    def __init__(self, url: str, headers: dict[str, str] | None = None):
         self.url = url
         self.headers = headers or {"Content-Type": "application/json"}
 
@@ -44,6 +43,5 @@ class WebhookDestination(Destination):
         )
 
     @classmethod
-    def from_config(cls, config: dict[str, str]) -> WebhookDestination:
-        """Create from a config dict."""
+    def from_config(cls, config: dict) -> "WebhookDestination":
         return cls(url=config["url"], headers=config.get("headers"))

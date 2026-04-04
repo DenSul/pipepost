@@ -1,1 +1,1 @@
-"""PipePost steps — pipeline processing steps."""
+"""PipePost steps — atomic units of work in a pipeline."""

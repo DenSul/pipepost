@@ -1,4 +1,5 @@
 """PipePost CLI — run content curation pipelines."""
+
 from __future__ import annotations
 
 import asyncio
@@ -7,7 +8,13 @@ import sys
 
 import click
 
-from pipepost.core.registry import discover_all, list_destinations, list_flows, list_sources
+from pipepost.core.registry import (
+    discover_all,
+    get_flow,
+    list_destinations,
+    list_flows,
+    list_sources,
+)
 
 
 def _setup_logging(verbose: bool = False) -> None:
@@ -51,6 +58,18 @@ def cmd_destinations() -> None:
         click.echo(f"  • {name}")
 
 
+@main.command("flows")
+def cmd_flows() -> None:
+    """List available pipeline flows."""
+    flows = list_flows()
+    if not flows:
+        click.echo("No flows registered.")
+        return
+    click.echo("Available flows:")
+    for name in flows:
+        click.echo(f"  • {name}")
+
+
 @main.command("run")
 @click.argument("flow_name")
 @click.option("--source", "-s", help="Source name")
@@ -58,15 +77,14 @@ def cmd_destinations() -> None:
 @click.option("--lang", "-l", default="ru", help="Target language")
 def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:
     """Run a pipeline flow."""
-    from pipepost.core.context import FlowContext
-    from pipepost.core.registry import get_flow
-
     try:
         flow = get_flow(flow_name)
     except KeyError:
         available = list_flows()
         click.echo(f"Unknown flow: {flow_name}. Available: {', '.join(available)}", err=True)
         sys.exit(1)
+
+    from pipepost.core.context import FlowContext
 
     ctx = FlowContext(
         source_name=source or "",
@@ -87,12 +105,12 @@ def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:
 @main.command("health")
 def cmd_health() -> None:
     """Check pipeline health."""
-    sources = ", ".join(list_sources()) or "none"
-    dests = ", ".join(list_destinations()) or "none"
-    flows = ", ".join(list_flows()) or "none"
-    click.echo(f"Sources: {sources}")
-    click.echo(f"Destinations: {dests}")
-    click.echo(f"Flows: {flows}")
+    sources = list_sources()
+    dests = list_destinations()
+    flows = list_flows()
+    click.echo(f"Sources: {', '.join(sources) if sources else 'none'}")
+    click.echo(f"Destinations: {', '.join(dests) if dests else 'none'}")
+    click.echo(f"Flows: {', '.join(flows) if flows else 'none'}")
     click.echo("✅ Pipeline healthy")
 
 

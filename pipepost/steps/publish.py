@@ -1,4 +1,5 @@
 """Publish translated article to a destination."""
+
 from __future__ import annotations
 
 import logging
@@ -10,11 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 class PublishStep(Step):
-    """Send translated article to a registered destination."""
-
     name = "publish"
 
-    def __init__(self, destination_name: str = "default") -> None:
+    def __init__(self, destination_name: str = "default"):
         self.destination_name = destination_name
 
     def should_skip(self, ctx: FlowContext) -> bool:
