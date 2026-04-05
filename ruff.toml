@@ -39,6 +39,7 @@ lines-after-imports = 2
 
 [lint.per-file-ignores]
 "tests/**/*.py" = ["ANN", "ARG", "SLF", "RUF001"]
+"pipepost/destinations/markdown.py" = ["RUF001"]  # Cyrillic transliteration map
 
 [format]
 quote-style = "double"

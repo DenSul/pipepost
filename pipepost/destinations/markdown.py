@@ -15,6 +15,47 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_CYRILLIC_MAP: dict[str, str] = {
+    "а": "a",
+    "б": "b",
+    "в": "v",
+    "г": "g",
+    "д": "d",
+    "е": "e",
+    "ё": "yo",
+    "ж": "zh",
+    "з": "z",
+    "и": "i",
+    "й": "y",
+    "к": "k",
+    "л": "l",
+    "м": "m",
+    "н": "n",
+    "о": "o",
+    "п": "p",
+    "р": "r",
+    "с": "s",
+    "т": "t",
+    "у": "u",
+    "ф": "f",
+    "х": "kh",
+    "ц": "ts",
+    "ч": "ch",
+    "ш": "sh",
+    "щ": "shch",
+    "ъ": "",
+    "ы": "y",
+    "ь": "",
+    "э": "e",
+    "ю": "yu",
+    "я": "ya",
+}
+
+
+def _transliterate(text: str) -> str:
+    """Transliterate Cyrillic characters to Latin equivalents."""
+    return "".join(_CYRILLIC_MAP.get(ch, ch) for ch in text)
+
 
 class MarkdownDestination(Destination):
     """Save translated articles as markdown files with YAML frontmatter."""
@@ -64,8 +105,8 @@ class MarkdownDestination(Destination):
 
     @staticmethod
     def _slugify(text: str) -> str:
-        """Convert text to URL-friendly slug."""
-        text = text.lower().strip()
-        text = re.sub(r"[^\w\s-]", "", text)
+        """Convert text to URL-friendly slug with transliteration."""
+        text = _transliterate(text.lower().strip())
+        text = re.sub(r"[^a-z0-9\s-]", "", text)
         text = re.sub(r"[\s_]+", "-", text)
         return text[:80].strip("-")
