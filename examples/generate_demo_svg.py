@@ -21,68 +21,104 @@ def _escape(text: str) -> str:
 # Simulates a real pipepost run with realistic output
 FRAMES: list[tuple[int, list[tuple[str, str]]]] = [
     # Frame 0: command
-    (0, [
-        ("#8be9fd", "$ pipepost run default --source hackernews --batch -n 3 --lang ru"),
-    ]),
+    (
+        0,
+        [
+            ("#8be9fd", "$ pipepost run default --source hackernews --batch -n 3 --lang ru"),
+        ],
+    ),
     # Frame 1: dedup
-    (800, [
-        ("#bd93f9", ""),
-        ("#bd93f9", "  💾  Dedup  loading published URLs"),
-        ("#6272a4", "     12 URLs in database"),
-    ]),
+    (
+        800,
+        [
+            ("#bd93f9", ""),
+            ("#bd93f9", "  💾  Dedup  loading published URLs"),
+            ("#6272a4", "     12 URLs in database"),
+        ],
+    ),
     # Frame 2: scout
-    (600, [
-        ("#bd93f9", ""),
-        ("#bd93f9", "  📡  Scout  HackerNews top stories"),
-        ("#6272a4", "     5 candidates in 1.2s"),
-        ("#f8f8f2", "     > \x1b[33m  453\x1b[0m  The threat is comfortable drift toward not understanding"),
-        ("#f8f8f2", "     > \x1b[33m  274\x1b[0m  A Claude Code skill that makes Claude talk like a caveman"),
-        ("#f8f8f2", "     > \x1b[33m  215\x1b[0m  Someone at BrowserStack is leaking users' email address"),
-    ]),
+    (
+        600,
+        [
+            ("#bd93f9", ""),
+            ("#bd93f9", "  📡  Scout  HackerNews top stories"),
+            ("#6272a4", "     5 candidates in 1.2s"),
+            (
+                "#f8f8f2",
+                "     > \x1b[33m  453\x1b[0m  The threat is comfortable drift toward not understanding",
+            ),
+            (
+                "#f8f8f2",
+                "     > \x1b[33m  274\x1b[0m  A Claude Code skill that makes Claude talk like a caveman",
+            ),
+            (
+                "#f8f8f2",
+                "     > \x1b[33m  215\x1b[0m  Someone at BrowserStack is leaking users' email address",
+            ),
+        ],
+    ),
     # Frame 3: fetch
-    (500, [
-        ("#bd93f9", ""),
-        ("#bd93f9", "  📥  Fetch  downloading articles"),
-        ("#6272a4", "     [1] The threat is comfortable drift... (8,421 chars)"),
-        ("#6272a4", "     [2] A Claude Code skill... (4,134 chars)"),
-        ("#6272a4", "     [3] Someone at BrowserStack... (3,890 chars)"),
-        ("#6272a4", "     Formatting: headings=True code=True links=True images=True"),
-    ]),
+    (
+        500,
+        [
+            ("#bd93f9", ""),
+            ("#bd93f9", "  📥  Fetch  downloading articles"),
+            ("#6272a4", "     [1] The threat is comfortable drift... (8,421 chars)"),
+            ("#6272a4", "     [2] A Claude Code skill... (4,134 chars)"),
+            ("#6272a4", "     [3] Someone at BrowserStack... (3,890 chars)"),
+            ("#6272a4", "     Formatting: headings=True code=True links=True images=True"),
+        ],
+    ),
     # Frame 4: translate
-    (500, [
-        ("#bd93f9", ""),
-        ("#bd93f9", "  🌍  Translate  via deepseek-reasoner"),
-        ("#6272a4", "     Translating 3 articles..."),
-    ]),
+    (
+        500,
+        [
+            ("#bd93f9", ""),
+            ("#bd93f9", "  🌍  Translate  via deepseek-reasoner"),
+            ("#6272a4", "     Translating 3 articles..."),
+        ],
+    ),
     # Frame 5: translate done
-    (3000, [
-        ("#50fa7b", '     [1] "Угроза — комфортный дрейф к непониманию"'),
-        ("#50fa7b", '     [2] "Навык Claude Code: говори как пещерный человек"'),
-        ("#50fa7b", '     [3] "Утечка email-адресов в BrowserStack"'),
-        ("#6272a4", "     Done in 14.2s"),
-    ]),
+    (
+        3000,
+        [
+            ("#50fa7b", '     [1] "Угроза — комфортный дрейф к непониманию"'),
+            ("#50fa7b", '     [2] "Навык Claude Code: говори как пещерный человек"'),
+            ("#50fa7b", '     [3] "Утечка email-адресов в BrowserStack"'),
+            ("#6272a4", "     Done in 14.2s"),
+        ],
+    ),
     # Frame 6: validate
-    (400, [
-        ("#bd93f9", ""),
-        ("#bd93f9", "  ✅  Validate  quality checks"),
-        ("#6272a4", "     3/3 passed (ratio > 80%, length > 200 chars)"),
-    ]),
+    (
+        400,
+        [
+            ("#bd93f9", ""),
+            ("#bd93f9", "  ✅  Validate  quality checks"),
+            ("#6272a4", "     3/3 passed (ratio > 80%, length > 200 chars)"),
+        ],
+    ),
     # Frame 7: publish
-    (400, [
-        ("#bd93f9", ""),
-        ("#bd93f9", "  📝  Publish  saving markdown files"),
-        ("#50fa7b", "     [1] 2026-04-05-ugroza-komfortnyy-dreyf  ✓"),
-        ("#50fa7b", "     [2] 2026-04-05-navyk-claude-code        ✓"),
-        ("#50fa7b", "     [3] 2026-04-05-utechka-email-adresov    ✓"),
-    ]),
+    (
+        400,
+        [
+            ("#bd93f9", ""),
+            ("#bd93f9", "  📝  Publish  saving markdown files"),
+            ("#50fa7b", "     [1] 2026-04-05-ugroza-komfortnyy-dreyf  ✓"),
+            ("#50fa7b", "     [2] 2026-04-05-navyk-claude-code        ✓"),
+            ("#50fa7b", "     [3] 2026-04-05-utechka-email-adresov    ✓"),
+        ],
+    ),
     # Frame 8: done
-    (500, [
-        ("#50fa7b", ""),
-        ("#50fa7b", "  ══════════════════════════════════════════════════"),
-        ("#50fa7b", "  Pipeline complete! 3 articles published in 18.4s"),
-        ("#50fa7b", "  ══════════════════════════════════════════════════"),
-        ("#6272a4", ""),
-    ]),
+    (
+        500,
+        [
+            ("#50fa7b", ""),
+            ("#50fa7b", "  ══════════════════════════════════════════════════"),
+            ("#50fa7b", "  Pipeline complete! 3 articles published in 18.4s"),
+            ("#50fa7b", "  ══════════════════════════════════════════════════"),
+            ("#6272a4", ""),
+        ],
+    ),
 ]
 
 FONT_SIZE = 14

@@ -124,7 +124,7 @@ async def main() -> None:
     client = AsyncOpenAI(base_url=base_url) if base_url else AsyncOpenAI()
 
     ts = TranslateStep(model="unused", target_lang="ru")
-    prompt = ts._build_prompt(ctx.selected.title, ctx.selected.content)  # noqa: SLF001
+    prompt = ts._build_prompt(ctx.selected.title, ctx.selected.content)
     info(f"Prompt: {len(prompt)} chars")
     info("Translating...")
 
@@ -136,7 +136,7 @@ async def main() -> None:
     )
     elapsed = time.monotonic() - t0
     raw = resp.choices[0].message.content or ""
-    parsed = ts._parse_output(raw)  # noqa: SLF001
+    parsed = ts._parse_output(raw)
 
     if not parsed:
         print(f"  {RED}Translation parse failed{RESET}")

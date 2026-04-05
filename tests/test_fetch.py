@@ -148,3 +148,155 @@ class TestHtmlToMarkdown:
         html = "<html><body><div>noise</div><article><p>real content</p></article></body></html>"
         md = fetch_step._html_to_markdown(html)
         assert "real content" in md
+
+
+class TestHtmlToMarkdownFormatting:
+    """Verify _html_to_markdown preserves all markdown formatting types."""
+
+    def test_preserves_headings(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            "<h1>Heading One</h1><h2>Heading Two</h2><h3>Heading Three</h3>"
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "# Heading One" in md
+        assert "## Heading Two" in md
+        assert "### Heading Three" in md
+
+    def test_preserves_code_blocks(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            '<pre><code class="language-python">def hello():\n    print("hi")</code></pre>'
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "```" in md
+        assert "def hello():" in md
+
+    def test_preserves_inline_code(self, fetch_step):
+        html = (
+            "<html><body><article><p>Use the <code>variable</code> here</p></article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "`variable`" in md
+
+    def test_preserves_links(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            '<p>Visit <a href="https://example.com">Example Site</a> for details</p>'
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "[Example Site](https://example.com)" in md
+
+    def test_preserves_images(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            '<p><img src="https://example.com/img.png" alt="Diagram"></p>'
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "![Diagram](https://example.com/img.png)" in md
+
+    def test_preserves_bold_italic(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            "<p>This is <strong>bold text</strong> and <em>italic text</em></p>"
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "**bold text**" in md
+        assert "*italic text*" in md
+
+    def test_preserves_unordered_lists(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            "<ul><li>First item</li><li>Second item</li><li>Third item</li></ul>"
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "First item" in md
+        assert "Second item" in md
+        # markdownify uses * or - for unordered lists
+        assert any(marker in md for marker in ["* First", "- First", "+ First"])
+
+    def test_preserves_ordered_lists(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            "<ol><li>Step one</li><li>Step two</li><li>Step three</li></ol>"
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "1." in md
+        assert "Step one" in md
+        assert "Step two" in md
+
+    def test_preserves_tables(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            "<table><thead><tr><th>Name</th><th>Value</th></tr></thead>"
+            "<tbody><tr><td>Alpha</td><td>100</td></tr>"
+            "<tr><td>Beta</td><td>200</td></tr></tbody></table>"
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert "|" in md
+        assert "Name" in md
+        assert "Alpha" in md
+
+    def test_preserves_blockquotes(self, fetch_step):
+        html = (
+            "<html><body><article>"
+            "<blockquote><p>This is a quoted passage from the source.</p></blockquote>"
+            "</article></body></html>"
+        )
+        md = fetch_step._html_to_markdown(html)
+        assert ">" in md
+        assert "quoted passage" in md
+
+    def test_complex_article(self, fetch_step):
+        html = """
+        <html><body><article>
+            <h1>Main Title</h1>
+            <p>This is <strong>bold</strong> and <em>italic</em> text.</p>
+            <h2>Code Examples</h2>
+            <p>Use <code>inline_var</code> for variables.</p>
+            <pre><code class="language-python">def greet(name):
+    return f"Hello, {name}"</code></pre>
+            <h3>Resources</h3>
+            <p>Visit <a href="https://docs.example.com">the docs</a> for more.</p>
+            <img src="https://example.com/arch.png" alt="Architecture diagram">
+            <blockquote><p>Knowledge is power.</p></blockquote>
+            <ul><li>Benefit one</li><li>Benefit two</li></ul>
+            <ol><li>First step</li><li>Second step</li></ol>
+            <table><thead><tr><th>Feature</th><th>Status</th></tr></thead>
+            <tbody><tr><td>Auth</td><td>Done</td></tr></tbody></table>
+        </article></body></html>
+        """
+        md = fetch_step._html_to_markdown(html)
+        # Headings
+        assert "# Main Title" in md
+        assert "## Code Examples" in md
+        assert "### Resources" in md
+        # Bold/italic
+        assert "**bold**" in md
+        assert "*italic*" in md
+        # Inline code
+        assert "`inline_var`" in md
+        # Code block
+        assert "```" in md
+        assert "def greet(name):" in md
+        # Link
+        assert "[the docs](https://docs.example.com)" in md
+        # Image
+        assert "![Architecture diagram](https://example.com/arch.png)" in md
+        # Blockquote
+        assert ">" in md
+        assert "Knowledge is power" in md
+        # Lists
+        assert "Benefit one" in md
+        assert "First step" in md
+        # Table
+        assert "|" in md
+        assert "Feature" in md

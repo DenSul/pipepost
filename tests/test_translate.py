@@ -226,3 +226,149 @@ class TestParseOutput:
         result = translate_step._parse_output(raw)
         assert result is not None
         assert result["tags"] == ["python", "testing", "ai"]
+
+
+class TestFormattingPreservation:
+    """Verify _parse_output preserves markdown formatting in translated content."""
+
+    def test_preserves_headings_in_translation(self, translate_step):
+        raw = (
+            "===TITLE_RU===\nЗаголовок\n"
+            "===CONTENT_RU===\n"
+            "# Главный заголовок\n\n## Подзаголовок\n\n### Третий уровень\n\n"
+            "Текст параграфа.\n"
+            "===TAGS===\ntest\n"
+        )
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        content = result["content_translated"]
+        assert "# Главный заголовок" in content
+        assert "## Подзаголовок" in content
+        assert "### Третий уровень" in content
+
+    def test_preserves_code_blocks_in_translation(self, translate_step):
+        raw = (
+            "===TITLE_RU===\nТитул\n"
+            "===CONTENT_RU===\n"
+            "Вот пример кода:\n\n"
+            "```python\ndef hello():\n    print('Привет мир')\n```\n\n"
+            "Конец примера.\n"
+            "===TAGS===\npython\n"
+        )
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        content = result["content_translated"]
+        assert "```python" in content
+        assert "def hello():" in content
+        assert "```" in content
+
+    def test_preserves_links_in_translation(self, translate_step):
+        raw = (
+            "===TITLE_RU===\nТитул\n"
+            "===CONTENT_RU===\n"
+            "Подробнее на [официальном сайте](https://docs.example.com).\n"
+            "===TAGS===\ntest\n"
+        )
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        content = result["content_translated"]
+        assert "[официальном сайте](https://docs.example.com)" in content
+
+    def test_preserves_images_in_translation(self, translate_step):
+        raw = (
+            "===TITLE_RU===\nТитул\n"
+            "===CONTENT_RU===\n"
+            "Диаграмма архитектуры:\n\n"
+            "![Схема архитектуры](https://example.com/arch.png)\n"
+            "===TAGS===\ntest\n"
+        )
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        content = result["content_translated"]
+        assert "![Схема архитектуры](https://example.com/arch.png)" in content
+
+    def test_preserves_tables_in_translation(self, translate_step):
+        raw = (
+            "===TITLE_RU===\nТитул\n"
+            "===CONTENT_RU===\n"
+            "| Функция | Статус |\n"
+            "| --- | --- |\n"
+            "| Авторизация | Готово |\n"
+            "| Кэширование | В процессе |\n"
+            "===TAGS===\ntest\n"
+        )
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        content = result["content_translated"]
+        assert "| Функция | Статус |" in content
+        assert "| --- | --- |" in content
+        assert "| Авторизация | Готово |" in content
+
+    def test_preserves_lists_in_translation(self, translate_step):
+        raw = (
+            "===TITLE_RU===\nТитул\n"
+            "===CONTENT_RU===\n"
+            "Ненумерованный список:\n\n"
+            "* Первый пункт\n"
+            "* Второй пункт\n\n"
+            "Нумерованный список:\n\n"
+            "1. Шаг один\n"
+            "2. Шаг два\n"
+            "===TAGS===\ntest\n"
+        )
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        content = result["content_translated"]
+        assert "* Первый пункт" in content
+        assert "* Второй пункт" in content
+        assert "1. Шаг один" in content
+        assert "2. Шаг два" in content
+
+    def test_full_formatted_article(self, translate_step):
+        raw = (
+            "===TITLE_RU===\nПолная статья с форматированием\n"
+            "===CONTENT_RU===\n"
+            "# Введение\n\n"
+            "Это **жирный** и *курсивный* текст.\n\n"
+            "## Примеры кода\n\n"
+            "Используйте `переменная` для инициализации.\n\n"
+            "```python\ndef приветствие(имя):\n    return f'Привет, {имя}'\n```\n\n"
+            "### Ресурсы\n\n"
+            "Посетите [документацию](https://docs.example.com) для деталей.\n\n"
+            "![Диаграмма](https://example.com/diagram.png)\n\n"
+            "> Знание — сила.\n\n"
+            "* Преимущество первое\n"
+            "* Преимущество второе\n\n"
+            "1. Первый шаг\n"
+            "2. Второй шаг\n\n"
+            "| Колонка1 | Колонка2 |\n"
+            "| --- | --- |\n"
+            "| Значение1 | Значение2 |\n"
+            "===TAGS===\npython, testing\n"
+        )
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        content = result["content_translated"]
+        # Headings
+        assert "# Введение" in content
+        assert "## Примеры кода" in content
+        assert "### Ресурсы" in content
+        # Bold/italic
+        assert "**жирный**" in content
+        assert "*курсивный*" in content
+        # Inline code
+        assert "`переменная`" in content
+        # Code block
+        assert "```python" in content
+        assert "def приветствие(имя):" in content
+        # Link
+        assert "[документацию](https://docs.example.com)" in content
+        # Image
+        assert "![Диаграмма](https://example.com/diagram.png)" in content
+        # Blockquote
+        assert "> Знание — сила." in content
+        # Lists
+        assert "* Преимущество первое" in content
+        assert "1. Первый шаг" in content
+        # Table
+        assert "| Колонка1 | Колонка2 |" in content
