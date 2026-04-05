@@ -72,12 +72,13 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 - 📢 **Fanout Publish** — Publish to multiple destinations simultaneously
 - 📦 **Batch Mode** — Process multiple articles in one run (`--batch -n 5`)
 - 🔄 **Composable Flows** — Chain steps: dedup → scout → score → fetch → translate → adapt → publish
-- 💾 **Deduplication** — SQLite-backed persistence prevents re-publishing across runs
+- 💾 **Deduplication** — Async SQLite persistence (aiosqlite) prevents re-publishing across runs
 - 📊 **Prometheus Metrics** — Pipeline runs, step durations, error counters (optional)
 - ⚙️ **Config-Driven Flows** — Define entire pipelines in YAML without writing Python
 - 🧩 **Plugin Architecture** — Add sources and destinations with a single file
-- 🔁 **Resilient Retries** — Exponential backoff with jitter for LLM calls (via tenacity)
+- 🔁 **Resilient Retries** — Exponential backoff with jitter for LLM calls and HTTP destinations (5xx/timeout)
 - 🚦 **Rate Limiting** — Built-in semaphore-based concurrency control for external APIs
+- ⚡ **Fetch Caching** — In-memory TTL cache avoids re-downloading the same article
 - 🔐 **Secret References** — Use `${ENV_VAR}` in YAML configs to keep secrets out of files
 - 🐳 **Docker Ready** — `docker compose up` and go
 
@@ -399,6 +400,16 @@ destination:
   chat_id: "${TELEGRAM_CHAT_ID}"
 ```
 
+**Source auto-registration:** Sources defined in YAML (rss with custom URL, search with custom queries, reddit with subreddits) are automatically registered in the pipeline registry when using `--config`. No manual registration needed.
+
+**Fetch caching:** The fetch step includes an in-memory TTL cache (default: 1 hour). Set `fetch.cache_ttl` to `0` to disable:
+
+```yaml
+fetch:
+  max_chars: 20000
+  cache_ttl: 3600  # seconds, 0 to disable
+```
+
 See [examples/pipepost.yaml](examples/pipepost.yaml) for more examples.
 
 ## Adding a Custom Source
@@ -495,8 +506,10 @@ sequenceDiagram
 **How it works:**
 1. Send `/scout` to the bot
 2. Bot fetches candidates and shows them with inline buttons
-3. Tap **Publish** — bot runs the full pipeline (fetch → translate → validate → publish)
+3. Tap **Publish** — bot runs the standard `Flow` pipeline (fetch → translate → validate → publish)
 4. Tap **Skip** — bot moves to the next candidate
+
+The bot uses the same composable `Flow` engine as CLI pipelines, so any new steps you add are automatically available.
 
 **Telegram as a destination** (automated, no approval needed):
 
