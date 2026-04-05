@@ -109,7 +109,9 @@ class FetchStep(Step):
         return None
 
     def _html_to_markdown(self, html: str) -> str:
-        """Simple HTML to markdown conversion."""
+        """Convert HTML to markdown preserving code blocks, images, and links."""
+        from markdownify import markdownify as md
+
         soup = BeautifulSoup(html, "html.parser")
         for tag in soup.find_all(["script", "style", "nav", "footer", "header", "aside"]):
             tag.decompose()
@@ -119,6 +121,6 @@ class FetchStep(Step):
             or soup.find("div", class_=re.compile(r"content|post|article", re.I))
         )
         target = article or soup.body or soup
-        text = target.get_text(separator="\n", strip=True)
+        text = md(str(target), heading_style="ATX", code_language="python")
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text[: self.max_chars]

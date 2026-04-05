@@ -42,6 +42,7 @@ dependencies = [
     "litellm>=1.30",
     "defusedxml>=0.7",
     "duckduckgo-search>=6.0",
+    "markdownify>=0.14",
 ]
 
 [project.optional-dependencies]
