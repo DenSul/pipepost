@@ -157,9 +157,38 @@ graph LR
     style Destinations fill:#533483,stroke:#16213e,color:#e0e0e0
 ```
 
-Every step is independent and composable. The default flow runs end-to-end: loads published URLs from SQLite, scouts candidates, fetches content, translates via LLM, validates quality, publishes, and persists the URL to avoid duplicates.
+Every step is independent and composable. Define your pipeline in YAML -- no Python needed:
 
-Create custom flows by chaining steps:
+```yaml
+# pipepost.yaml — full pipeline config
+sources:
+  - name: hackernews
+    min_score: 100
+
+translate:
+  model: deepseek/deepseek-chat
+  target_lang: ru
+
+destination:
+  type: markdown
+  output_dir: ./output
+
+flow:
+  steps: [dedup, scout, score, fetch, translate, validate, publish, post_publish]
+  score:
+    niche: tech
+  storage:
+    db_path: pipepost.db
+```
+
+```bash
+pipepost run --config pipepost.yaml --source hackernews
+```
+
+Add or remove steps from the `flow.steps` list to customize your pipeline. Available steps: `dedup`, `scout`, `score`, `fetch`, `translate`, `adapt`, `validate`, `publish`, `fanout_publish`, `post_publish`.
+
+<details>
+<summary>Advanced: custom flows in Python</summary>
 
 ```python
 from pipepost.core import Flow
@@ -186,6 +215,7 @@ my_flow = Flow(
     ],
 )
 ```
+</details>
 
 ## Use Cases
 
@@ -295,8 +325,10 @@ sources:
 
 ## Configuration
 
+All configuration lives in `pipepost.yaml`. Priority: CLI flags > env vars > YAML > defaults.
+
 ```yaml
-# pipepost.yaml
+# pipepost.yaml — complete example
 sources:
   - name: hackernews
     min_score: 100
@@ -318,30 +350,21 @@ destination:
 translate:
   model: deepseek/deepseek-chat
   target_lang: ru
-  min_ratio: 0.8
-```
 
-### Config-Driven Flows
-
-Define your entire pipeline in YAML -- no Python needed:
-
-```yaml
 flow:
-  steps: [dedup, scout, score, fetch, translate, adapt, validate, publish, post_publish]
+  steps: [dedup, scout, score, fetch, translate, validate, publish, post_publish]
   on_error: stop
   score:
     niche: tech
-  adapt:
-    style: telegram
   publish:
     destination_name: webhook
   storage:
-    db_path: my_project.db
+    db_path: pipepost.db
 ```
 
-Run with: `pipepost run --config pipepost.yaml --source hackernews`
+**Env var overrides:** `PIPEPOST_MODEL`, `PIPEPOST_LANG`, `PIPEPOST_DEST_URL`
 
-See [examples/pipepost.yaml](examples/pipepost.yaml) for a complete configuration example.
+See [examples/pipepost.yaml](examples/pipepost.yaml) for more examples.
 
 ## Adding a Custom Source
 
