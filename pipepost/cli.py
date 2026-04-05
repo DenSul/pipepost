@@ -15,6 +15,7 @@ from pipepost.core.registry import (
     list_destinations,
     list_flows,
     list_sources,
+    list_steps,
     list_styles,
 )
 
@@ -249,6 +250,63 @@ def _run_batch_mode(
 
     if not any_success:
         sys.exit(1)
+
+
+@main.command("validate")
+@click.option("--config", "-c", "config_path", default=None, help="Path to config file")
+def cmd_validate(config_path: str | None) -> None:
+    """Validate a config file without running the pipeline."""
+    from pipepost.config.loader import load_config
+
+    try:
+        config = load_config(config_path)
+    except Exception as exc:
+        click.echo(f"Config error: {exc}", err=True)
+        sys.exit(1)
+
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    # Check sources exist
+    for src in config.sources:
+        if src.name not in list_sources() and src.type not in ("rss", "search"):
+            warnings.append(f"Source '{src.name}' (type: {src.type}) — will be created from config")
+
+    # Check flow steps are valid
+    known_steps = list_steps()
+    for step_name in config.flow.steps:
+        if step_name not in known_steps:
+            errors.append(f"Unknown step: '{step_name}'. Available: {', '.join(known_steps)}")
+
+    # Check model is configured
+    model = config.translate.model
+    if not model or model == "deepseek/deepseek-chat":
+        import os
+
+        env_model = os.getenv("PIPEPOST_MODEL")
+        if not env_model:
+            warnings.append("No custom model configured (using default deepseek/deepseek-chat)")
+
+    # Report
+    dest_type = config.destination.type if hasattr(config.destination, "type") else "unknown"
+    click.echo("Config: valid")
+    click.echo(f"  Sources: {len(config.sources)} configured")
+    click.echo(f"  Destination: {dest_type}")
+    click.echo(f"  Model: {config.translate.model}")
+    click.echo(f"  Language: {config.translate.target_lang}")
+    step_chain = " -> ".join(config.flow.steps)
+    click.echo(f"  Steps: {step_chain}")
+
+    if warnings:
+        for w in warnings:
+            click.echo(f"  Warning: {w}")
+
+    if errors:
+        for e in errors:
+            click.echo(f"  Error: {e}", err=True)
+        sys.exit(1)
+    else:
+        click.echo("  All checks passed")
 
 
 @main.command("bot")

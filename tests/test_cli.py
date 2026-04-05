@@ -242,6 +242,91 @@ class TestCLIHealth:
         assert "none" in result.output
 
 
+class TestCLIValidate:
+    def test_validate_valid_config(self):
+        from pipepost.config.loader import (
+            FlowConfig,
+            MarkdownDestinationConfig,
+            PipePostConfig,
+            SourceConfig,
+            TranslateConfig,
+        )
+
+        mock_config = PipePostConfig(
+            sources=[SourceConfig(name="test-rss", type="rss", url="https://example.com/feed.xml")],
+            destination=MarkdownDestinationConfig(),
+            translate=TranslateConfig(model="gpt-4", target_lang="ru"),
+            flow=FlowConfig(steps=["dedup", "scout", "fetch", "translate", "validate", "publish"]),
+        )
+        runner = CliRunner()
+        with (
+            patch("pipepost.cli.discover_all"),
+            patch("pipepost.config.loader.load_config", return_value=mock_config),
+            patch(
+                "pipepost.cli.list_steps",
+                return_value=[
+                    "dedup",
+                    "fetch",
+                    "post_publish",
+                    "publish",
+                    "scout",
+                    "translate",
+                    "validate",
+                ],
+            ),
+            patch("pipepost.cli.list_sources", return_value=[]),
+        ):
+            result = runner.invoke(main, ["validate", "-c", "dummy.yaml"])
+        assert result.exit_code == 0
+        assert "Config: valid" in result.output
+        assert "All checks passed" in result.output
+        assert "Sources: 1 configured" in result.output
+        assert "markdown" in result.output
+
+    def test_validate_unknown_step_exits_1(self):
+        from pipepost.config.loader import FlowConfig, PipePostConfig
+
+        mock_config = PipePostConfig(
+            flow=FlowConfig(steps=["dedup", "nonexistent_step"]),
+        )
+        runner = CliRunner()
+        with (
+            patch("pipepost.cli.discover_all"),
+            patch("pipepost.config.loader.load_config", return_value=mock_config),
+            patch("pipepost.cli.list_steps", return_value=["dedup", "fetch", "translate"]),
+            patch("pipepost.cli.list_sources", return_value=[]),
+        ):
+            result = runner.invoke(main, ["validate", "-c", "dummy.yaml"])
+        assert result.exit_code == 1
+        assert "Unknown step: 'nonexistent_step'" in result.output
+
+    def test_validate_missing_config_exits_1(self):
+        runner = CliRunner()
+        with patch("pipepost.cli.discover_all"):
+            result = runner.invoke(main, ["validate", "-c", "/nonexistent/path.yaml"])
+        assert result.exit_code == 1
+        assert "Config error" in result.output
+
+    def test_validate_warns_on_default_model(self):
+        from pipepost.config.loader import FlowConfig, PipePostConfig, TranslateConfig
+
+        mock_config = PipePostConfig(
+            translate=TranslateConfig(model="deepseek/deepseek-chat"),
+            flow=FlowConfig(steps=["dedup"]),
+        )
+        runner = CliRunner()
+        with (
+            patch("pipepost.cli.discover_all"),
+            patch("pipepost.config.loader.load_config", return_value=mock_config),
+            patch("pipepost.cli.list_steps", return_value=["dedup"]),
+            patch("pipepost.cli.list_sources", return_value=[]),
+            patch.dict("os.environ", {"PIPEPOST_MODEL": ""}, clear=False),
+        ):
+            result = runner.invoke(main, ["validate", "-c", "dummy.yaml"])
+        assert result.exit_code == 0
+        assert "No custom model configured" in result.output
+
+
 class TestCLIVerbose:
     def test_verbose_flag_accepted(self):
         runner = CliRunner()

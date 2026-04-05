@@ -64,7 +64,7 @@ class AdaptStep(Step):
     def from_config(cls, build_ctx: StepBuildContext) -> AdaptStep:
         """Create from StepBuildContext."""
         return cls(
-            model=build_ctx.model or None,
+            model=build_ctx.adapt_model or build_ctx.model or None,
             style=build_ctx.style,
             target_lang=build_ctx.target_lang,
             max_tokens=build_ctx.max_tokens,

@@ -37,10 +37,12 @@ class StepBuildContext:
     fetch_timeout: float = 30.0
 
     # Scoring
+    score_model: str = ""
     niche: str = "general"
     max_score_candidates: int = 5
 
     # Adapt
+    adapt_model: str = ""
     style: str = "blog"
 
     # Validation

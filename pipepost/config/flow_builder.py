@@ -11,8 +11,6 @@ from pipepost.exceptions import ConfigError
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from pipepost.config.loader import DestinationConfig, PipePostConfig
     from pipepost.core.flow import Flow
     from pipepost.core.step import Step
@@ -24,39 +22,43 @@ logger = logging.getLogger(__name__)
 
 def build_destination_from_config(dest_config: DestinationConfig) -> None:
     """Create a Destination from config and register it under its type name + 'default'."""
+    from pipepost.config.loader import (
+        MarkdownDestinationConfig,
+        OpenClawDestinationConfig,
+        TelegramDestinationConfig,
+        WebhookDestinationConfig,
+    )
     from pipepost.destinations.markdown import MarkdownDestination
     from pipepost.destinations.openclaw import OpenClawDestination
     from pipepost.destinations.telegram import TelegramDestination
     from pipepost.destinations.webhook import WebhookDestination
 
-    dest_type = dest_config.type
-    factories: dict[str, Callable[[], Destination]] = {
-        "markdown": lambda: MarkdownDestination(output_dir=dest_config.output_dir),
-        "webhook": lambda: WebhookDestination(
+    dest: Destination
+    if isinstance(dest_config, MarkdownDestinationConfig):
+        dest = MarkdownDestination(output_dir=dest_config.output_dir)
+    elif isinstance(dest_config, WebhookDestinationConfig):
+        dest = WebhookDestination(
             url=dest_config.url,
             headers=dest_config.headers or None,
-        ),
-        "telegram": lambda: TelegramDestination.from_config(
-            {
-                "bot_token": dest_config.headers.get("bot_token", ""),
-                "chat_id": dest_config.headers.get("chat_id", ""),
-            }
-        ),
-        "openclaw": lambda: OpenClawDestination.from_config(
-            {
-                "gateway_url": dest_config.url,
-            }
-        ),
-    }
+        )
+    elif isinstance(dest_config, TelegramDestinationConfig):
+        dest = TelegramDestination(
+            bot_token=dest_config.bot_token,
+            chat_id=dest_config.chat_id,
+            parse_mode=dest_config.parse_mode,
+        )
+    elif isinstance(dest_config, OpenClawDestinationConfig):
+        dest = OpenClawDestination(
+            gateway_url=dest_config.gateway_url,
+            session_id=dest_config.session_id,
+            channels=dest_config.channels or None,
+        )
+    else:
+        raise ConfigError(f"Unknown destination type: {dest_config.type}")
 
-    factory = factories.get(dest_type)
-    if not factory:
-        raise ConfigError(f"Unknown destination type: {dest_type}")
-
-    dest = factory()
-    register_destination(dest_type, dest)
+    register_destination(dest_config.type, dest)
     register_destination("default", dest)
-    logger.info("Registered destination '%s' (also as 'default')", dest_type)
+    logger.info("Registered destination '%s' (also as 'default')", dest_config.type)
 
 
 def build_flow_from_config(config: PipePostConfig) -> Flow:
@@ -128,8 +130,10 @@ def _build_step(
         max_tokens=config.translate.max_tokens,
         max_chars=config.fetch.max_chars,
         fetch_timeout=config.fetch.timeout,
+        score_model=config.flow.score.model,
         niche=config.flow.score.niche,
         max_score_candidates=config.flow.score.max_score_candidates,
+        adapt_model=config.flow.adapt.model,
         style=config.flow.adapt.style,
         min_content_len=config.validate_.min_content_len,
         min_ratio=config.validate_.min_ratio,

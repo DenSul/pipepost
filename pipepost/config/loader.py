@@ -6,10 +6,10 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Discriminator, Field, Tag
 
 from pipepost.exceptions import ConfigError
 
@@ -35,13 +35,52 @@ class SourceConfig(BaseModel):
     max_items: int = 20
 
 
-class DestinationConfig(BaseModel):
-    """Configuration for the publish destination."""
+class BaseDestinationConfig(BaseModel):
+    """Base configuration for a publish destination."""
 
-    type: str = "markdown"
-    url: str = ""
+    type: str
+
+
+class MarkdownDestinationConfig(BaseDestinationConfig):
+    """Configuration for the markdown file destination."""
+
+    type: Literal["markdown"] = "markdown"
     output_dir: str = "./output"
+
+
+class WebhookDestinationConfig(BaseDestinationConfig):
+    """Configuration for the webhook destination."""
+
+    type: Literal["webhook"] = "webhook"
+    url: str = ""
     headers: dict[str, str] = Field(default_factory=dict)
+
+
+class TelegramDestinationConfig(BaseDestinationConfig):
+    """Configuration for the Telegram destination."""
+
+    type: Literal["telegram"] = "telegram"
+    bot_token: str = ""
+    chat_id: str = ""
+    parse_mode: str = "HTML"
+
+
+class OpenClawDestinationConfig(BaseDestinationConfig):
+    """Configuration for the OpenClaw destination."""
+
+    type: Literal["openclaw"] = "openclaw"
+    gateway_url: str = "ws://127.0.0.1:18789"
+    session_id: str = ""
+    channels: list[str] = Field(default_factory=list)
+
+
+DestinationConfig = Annotated[
+    Annotated[MarkdownDestinationConfig, Tag("markdown")]
+    | Annotated[WebhookDestinationConfig, Tag("webhook")]
+    | Annotated[TelegramDestinationConfig, Tag("telegram")]
+    | Annotated[OpenClawDestinationConfig, Tag("openclaw")],
+    Discriminator("type"),
+]
 
 
 class TranslateConfig(BaseModel):
@@ -70,6 +109,7 @@ class ValidateConfig(BaseModel):
 class ScoreConfig(BaseModel):
     """Configuration for the scoring step."""
 
+    model: str = ""
     niche: str = "general"
     max_score_candidates: int = 5
 
@@ -77,6 +117,7 @@ class ScoreConfig(BaseModel):
 class AdaptConfig(BaseModel):
     """Configuration for the adapt step."""
 
+    model: str = ""
     style: str = "blog"
 
 
@@ -118,7 +159,7 @@ class PipePostConfig(BaseModel):
     """Root configuration schema for PipePost."""
 
     sources: list[SourceConfig] = Field(default_factory=list)
-    destination: DestinationConfig = Field(default_factory=DestinationConfig)
+    destination: DestinationConfig = Field(default_factory=MarkdownDestinationConfig)
     translate: TranslateConfig = Field(default_factory=TranslateConfig)
     fetch: FetchConfig = Field(default_factory=FetchConfig)
     validate_: ValidateConfig = Field(default_factory=ValidateConfig, alias="validate")

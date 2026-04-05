@@ -6,9 +6,9 @@ import pytest
 
 from pipepost.config.loader import (
     AdaptConfig,
-    DestinationConfig,
     FetchConfig,
     FlowConfig,
+    MarkdownDestinationConfig,
     PipePostConfig,
     PublishFlowConfig,
     ScoreConfig,
@@ -16,6 +16,7 @@ from pipepost.config.loader import (
     StorageConfig,
     TranslateConfig,
     ValidateConfig,
+    WebhookDestinationConfig,
     _apply_env_overrides,
     _deep_set,
     _find_config_file,
@@ -47,9 +48,14 @@ class TestPipePostConfigDefaults:
         assert src.max_items == 20
 
     def test_destination_config_defaults(self):
-        dest = DestinationConfig()
+        dest = MarkdownDestinationConfig()
         assert dest.type == "markdown"
         assert dest.output_dir == "./output"
+
+    def test_webhook_destination_config_defaults(self):
+        dest = WebhookDestinationConfig()
+        assert dest.type == "webhook"
+        assert dest.url == ""
         assert dest.headers == {}
 
     def test_translate_config_defaults(self):

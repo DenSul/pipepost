@@ -39,7 +39,7 @@ class ScoringStep(Step):
     def from_config(cls, build_ctx: StepBuildContext) -> ScoringStep:
         """Create from StepBuildContext."""
         return cls(
-            model=build_ctx.model or None,
+            model=build_ctx.score_model or build_ctx.model or None,
             max_score_candidates=build_ctx.max_score_candidates,
             niche=build_ctx.niche,
         )

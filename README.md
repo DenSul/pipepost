@@ -365,7 +365,11 @@ flow:
   steps: [dedup, scout, score, fetch, translate, validate, publish, post_publish]
   on_error: stop
   score:
+    model: gpt-4o-mini  # optional: cheaper model for scoring
     niche: tech
+  adapt:
+    model: claude-sonnet-4-20250514  # optional: different model for style adaptation
+    style: telegram
   publish:
     destination_name: webhook
   storage:
