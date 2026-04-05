@@ -53,7 +53,9 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 - [OpenClaw Integration](#openclaw-integration)
 - [Adding a Custom Source](#adding-a-custom-source)
 - [Adding a Custom Destination](#adding-a-custom-destination)
+- [Adding a Custom Style](#adding-a-custom-style)
 - [Supported LLM Models](#supported-llm-models)
+- [CLI Reference](#cli-reference)
 - [Docker](#docker)
 - [Development](#development)
 - [Contributing](#contributing)
@@ -115,6 +117,9 @@ pipepost run --config pipepost.yaml --source hackernews
 export TELEGRAM_BOT_TOKEN=your-bot-token
 pipepost bot --source hackernews --lang ru
 
+# Validate config without running
+pipepost validate --config pipepost.yaml
+
 # Check health
 pipepost health
 ```
@@ -148,6 +153,7 @@ graph LR
         Fetch[Fetch<br><i>download article</i>]
         Translate[Translate<br><i>LLM translation</i>]
         Adapt[Adapt<br><i>style: blog/tg/thread</i>]
+        Images[Images<br><i>download & rewrite</i>]
         Validate[Validate<br><i>quality check</i>]
     end
 
@@ -158,7 +164,7 @@ graph LR
         OC[OpenClaw<br><i>23+ channels</i>]
     end
 
-    HN & RD & RSS & DDG --> Dedup --> Scout --> Score --> Fetch --> Translate --> Adapt --> Validate
+    HN & RD & RSS & DDG --> Dedup --> Scout --> Score --> Fetch --> Translate --> Adapt --> Images --> Validate
     Validate --> WH & MD & TG & OC
 
     style Pipeline fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
@@ -194,7 +200,7 @@ flow:
 pipepost run --config pipepost.yaml --source hackernews
 ```
 
-Add or remove steps from the `flow.steps` list to customize your pipeline. Available steps: `dedup`, `scout`, `score`, `fetch`, `translate`, `adapt`, `validate`, `publish`, `fanout_publish`, `post_publish`.
+Add or remove steps from the `flow.steps` list to customize your pipeline. Available steps: `dedup`, `scout`, `score`, `fetch`, `translate`, `adapt`, `images`, `validate`, `publish`, `fanout_publish`, `post_publish`.
 
 <details>
 <summary>Advanced: custom flows in Python</summary>
@@ -355,7 +361,13 @@ destination:
   type: webhook
   url: https://myblog.com/api/posts/auto-publish
   headers:
-    Authorization: "Bearer your-token"
+    Authorization: "Bearer ${API_TOKEN}"
+
+# Or use typed destination configs:
+# destination:
+#   type: telegram
+#   bot_token: "${TELEGRAM_BOT_TOKEN}"
+#   chat_id: "@my_channel"
 
 translate:
   model: deepseek/deepseek-chat
@@ -536,7 +548,23 @@ PipePost uses [LiteLLM](https://github.com/BerriAI/litellm) for translation, sup
 - **Google** — `gemini/gemini-2.0-flash`
 - **Local** — `ollama/llama3.1`, any Ollama model
 
-Set via `PIPEPOST_MODEL` env var or in YAML config.
+Set via `PIPEPOST_MODEL` env var or in YAML config. Each LLM step (translate, score, adapt) can use a different model — see [Configuration](#configuration).
+
+## CLI Reference
+
+| Command | Description |
+|---------|-------------|
+| `pipepost run <flow>` | Run a pipeline flow (default: `default`) |
+| `pipepost run --batch -n 5` | Process multiple articles in one run |
+| `pipepost run --dry-run` | Preview results without publishing |
+| `pipepost run --config file.yaml` | Use a config file |
+| `pipepost validate --config file.yaml` | Validate config without running |
+| `pipepost bot` | Start interactive Telegram curation bot |
+| `pipepost sources` | List registered content sources |
+| `pipepost destinations` | List registered publish destinations |
+| `pipepost styles` | List available adapt styles |
+| `pipepost flows` | List registered pipeline flows |
+| `pipepost health` | Check pipeline health status |
 
 ## Docker
 
