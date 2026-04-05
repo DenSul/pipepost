@@ -66,13 +66,17 @@ class TestTranslatedArticle:
 
     def test_tags_default_factory(self):
         a = TranslatedArticle(
-            title="a", title_translated="б",
-            content="c", content_translated="д",
+            title="a",
+            title_translated="б",
+            content="c",
+            content_translated="д",
             source_url="u",
         )
         b = TranslatedArticle(
-            title="x", title_translated="y",
-            content="z", content_translated="w",
+            title="x",
+            title_translated="y",
+            content="z",
+            content_translated="w",
             source_url="u2",
         )
         a.tags.append("python")
@@ -162,13 +166,17 @@ class TestFlowContext:
 class TestTranslatedArticleMetadata:
     def test_metadata_isolation(self):
         a = TranslatedArticle(
-            title="a", title_translated="b",
-            content="c", content_translated="d",
+            title="a",
+            title_translated="b",
+            content="c",
+            content_translated="d",
             source_url="u",
         )
         b = TranslatedArticle(
-            title="x", title_translated="y",
-            content="z", content_translated="w",
+            title="x",
+            title_translated="y",
+            content="z",
+            content_translated="w",
             source_url="u2",
         )
         a.metadata["key"] = "val"

@@ -38,7 +38,7 @@ force-single-line = false
 lines-after-imports = 2
 
 [lint.per-file-ignores]
-"tests/**/*.py" = ["ANN", "ARG", "SLF"]
+"tests/**/*.py" = ["ANN", "ARG", "SLF", "RUF001"]
 
 [format]
 quote-style = "double"

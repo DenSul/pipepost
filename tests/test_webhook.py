@@ -5,8 +5,9 @@ from __future__ import annotations
 import pytest
 import respx
 
-from pipepost.core.context import PublishResult, TranslatedArticle
+from pipepost.core.context import TranslatedArticle
 from pipepost.destinations.webhook import WebhookDestination
+from pipepost.exceptions import PublishError
 
 
 @pytest.fixture
@@ -50,6 +51,7 @@ class TestWebhookPublish:
 
         request = route.calls[0].request
         import json
+
         body = json.loads(request.content)
         assert body["title"] == "Original Title"
         assert body["title_translated"] == "Переведённый заголовок"
@@ -62,7 +64,7 @@ class TestWebhookPublish:
         respx.post("https://api.example.com/import").respond(status_code=500)
 
         dest = WebhookDestination(url="https://api.example.com/import")
-        with pytest.raises(Exception):
+        with pytest.raises(PublishError):
             await dest.publish(translated)
 
     @pytest.mark.asyncio
@@ -108,14 +110,17 @@ class TestWebhookPublish:
             json={"slug": "s", "url": "u"},
         )
         article = TranslatedArticle(
-            title="T", title_translated="Т",
-            content="C", content_translated="К",
+            title="T",
+            title_translated="Т",
+            content="C",
+            content_translated="К",
             source_url="https://x.com",
             cover_image=None,
         )
         dest = WebhookDestination(url="https://api.example.com/import")
         await dest.publish(article)
         import json
+
         body = json.loads(route.calls[0].request.content)
         assert body["cover_image"] is None
 

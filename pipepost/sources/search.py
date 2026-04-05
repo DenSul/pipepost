@@ -98,9 +98,7 @@ class SearchSource(Source):
     def from_config(cls, config: dict[str, object]) -> SearchSource:
         """Create SearchSource from YAML config dict."""
         raw_queries = config.get("queries")
-        queries: list[str] = (
-            [str(q) for q in raw_queries] if isinstance(raw_queries, list) else []
-        )
+        queries: list[str] = [str(q) for q in raw_queries] if isinstance(raw_queries, list) else []
         return cls(
             name=str(config.get("name", "search")),
             queries=queries,

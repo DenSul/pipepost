@@ -37,8 +37,7 @@ LLM_GOOD_OUTPUT = (
     "===TITLE_RU===\n"
     "Переведённый заголовок\n"
     "===CONTENT_RU===\n"
-    "Это переведённый контент статьи. Ещё текст для длины. " * 10
-    + "\n===TAGS===\n"
+    "Это переведённый контент статьи. Ещё текст для длины. " * 10 + "\n===TAGS===\n"
     "python, testing, ai\n"
 )
 
@@ -81,12 +80,14 @@ class TestTranslateStepExecute:
         assert result.has_errors
         assert "No article" in result.errors[0]
 
-
     @pytest.mark.asyncio
     async def test_retries_on_first_llm_failure(self, translate_step, ctx_with_article):
         """LLM is retried once on failure before raising."""
         with patch("litellm.acompletion", new_callable=AsyncMock) as mock_acomp:
-            mock_acomp.side_effect = [RuntimeError("transient"), _make_llm_response(LLM_GOOD_OUTPUT)]
+            mock_acomp.side_effect = [
+                RuntimeError("transient"),
+                _make_llm_response(LLM_GOOD_OUTPUT),
+            ]
             ctx = await translate_step.execute(ctx_with_article)
 
         assert ctx.translated is not None
@@ -150,7 +151,11 @@ class TestBuildPrompt:
 
 class TestParseOutput:
     def test_parse_valid_output(self, translate_step):
-        raw = "===TITLE_RU===\nМой заголовок\n===CONTENT_RU===\nМой контент\n===TAGS===\npython, testing\n"
+        raw = (
+            "===TITLE_RU===\nМой заголовок\n"
+            "===CONTENT_RU===\nМой контент\n"
+            "===TAGS===\npython, testing\n"
+        )
         result = translate_step._parse_output(raw)
         assert result is not None
         assert result["title_translated"] == "Мой заголовок"
@@ -159,7 +164,12 @@ class TestParseOutput:
         assert "testing" in result["tags"]
 
     def test_parse_strips_thinking_tags(self, translate_step):
-        raw = "<think>Let me analyze...</think>\n===TITLE_RU===\nЗаголовок\n===CONTENT_RU===\nСодержание\n===TAGS===\ntech\n"
+        raw = (
+            "<think>Let me analyze...</think>\n"
+            "===TITLE_RU===\nЗаголовок\n"
+            "===CONTENT_RU===\nСодержание\n"
+            "===TAGS===\ntech\n"
+        )
         result = translate_step._parse_output(raw)
         assert result is not None
         assert result["title_translated"] == "Заголовок"
@@ -200,7 +210,11 @@ class TestParseOutput:
 
     def test_parse_multiline_content(self, translate_step):
         """Content with multiple paragraphs is preserved."""
-        raw = "===TITLE_RU===\nT\n===CONTENT_RU===\nLine one\n\nLine two\n\nLine three\n===TAGS===\ntest\n"
+        raw = (
+            "===TITLE_RU===\nT\n"
+            "===CONTENT_RU===\nLine one\n\nLine two\n\nLine three\n"
+            "===TAGS===\ntest\n"
+        )
         result = translate_step._parse_output(raw)
         assert result is not None
         assert "Line one" in result["content_translated"]

@@ -110,8 +110,7 @@ class TestDiscoverModules:
     def test_discover_all(self):
         """discover_all should register at least the built-in sources."""
         to_remove = [
-            k for k in sys.modules
-            if k.startswith("pipepost.sources.") or k.startswith("pipepost.destinations.")
+            k for k in sys.modules if k.startswith(("pipepost.sources.", "pipepost.destinations."))
         ]
         for k in to_remove:
             del sys.modules[k]

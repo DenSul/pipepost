@@ -48,10 +48,13 @@ class TestPublishStepExecute:
     async def test_successful_publish(self, good_translated, monkeypatch):
         mock_dest = AsyncMock()
         mock_dest.publish.return_value = PublishResult(
-            success=True, slug="my-article", url="/out/my-article.md",
+            success=True,
+            slug="my-article",
+            url="/out/my-article.md",
         )
 
-        # get_destination is imported inside execute via `from pipepost.core.registry import get_destination`
+        # get_destination is imported inside execute
+        # via `from pipepost.core.registry import get_destination`
         monkeypatch.setattr(
             "pipepost.core.registry.get_destination",
             lambda name: mock_dest,
@@ -71,7 +74,8 @@ class TestPublishStepExecute:
     async def test_publish_failure_result(self, good_translated, monkeypatch):
         mock_dest = AsyncMock()
         mock_dest.publish.return_value = PublishResult(
-            success=False, error="webhook returned 500",
+            success=False,
+            error="webhook returned 500",
         )
 
         monkeypatch.setattr(

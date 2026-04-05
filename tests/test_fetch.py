@@ -131,7 +131,10 @@ class TestOgImageExtraction:
 
 class TestHtmlToMarkdown:
     def test_strips_script_and_nav(self, fetch_step):
-        html = "<html><body><script>x</script><nav>n</nav><article><p>content</p></article></body></html>"
+        html = (
+            "<html><body><script>x</script><nav>n</nav>"
+            "<article><p>content</p></article></body></html>"
+        )
         md = fetch_step._html_to_markdown(html)
         assert "content" in md
 

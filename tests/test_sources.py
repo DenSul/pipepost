@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-import httpx
 import respx
 
 from pipepost.sources.hackernews import HackerNewsSource
@@ -137,7 +136,14 @@ class TestRedditSource:
                 "data": {
                     "children": [
                         {"data": {"id": "1", "title": "Low", "url": "https://a.com", "score": 10}},
-                        {"data": {"id": "2", "title": "High", "url": "https://b.com", "score": 999}},
+                        {
+                            "data": {
+                                "id": "2",
+                                "title": "High",
+                                "url": "https://b.com",
+                                "score": 999,
+                            }
+                        },
                     ],
                 },
             },
@@ -298,11 +304,12 @@ class TestSearchSource:
 
         monkeypatch.setattr("pipepost.sources.search.DDGS", FakeDDGS, raising=False)
         # Patch at import location
-        import pipepost.sources.search as search_mod
+
         original = None
         try:
             # The import is inside fetch_candidates, so we need to patch it in sys.modules
             import duckduckgo_search
+
             original = duckduckgo_search.DDGS
             duckduckgo_search.DDGS = FakeDDGS
         except ImportError:
@@ -336,6 +343,7 @@ class TestSearchSource:
 
         try:
             import duckduckgo_search
+
             original = duckduckgo_search.DDGS
             duckduckgo_search.DDGS = BrokenDDGS
         except ImportError:

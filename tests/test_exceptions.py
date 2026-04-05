@@ -82,7 +82,7 @@ class TestExceptionInstantiation:
         [SourceError, FetchError, TranslateError, PublishError, ConfigError, ValidationError],
     )
     def test_catchable_as_exception(self, exc_cls: type[Exception]):
-        with pytest.raises(Exception):
+        with pytest.raises(exc_cls):
             raise exc_cls("test")
 
 
@@ -94,10 +94,10 @@ class TestExceptionChaining:
         assert exc.__cause__ is cause
 
     def test_raise_from_preserves_chain(self):
+        cause = RuntimeError("API timeout")
+        exc = TranslateError("LLM call failed")
+        exc.__cause__ = cause
         with pytest.raises(TranslateError) as exc_info:
-            try:
-                raise RuntimeError("API timeout")
-            except RuntimeError as e:
-                raise TranslateError("LLM call failed") from e
+            raise exc
         assert exc_info.value.__cause__ is not None
         assert isinstance(exc_info.value.__cause__, RuntimeError)

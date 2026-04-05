@@ -6,6 +6,7 @@ import sys
 import types
 from unittest.mock import AsyncMock
 
+
 # Ensure litellm is importable even when the real package is broken
 # (e.g., Windows long-path issue). Tests mock acompletion anyway.
 if "litellm" not in sys.modules:
@@ -78,7 +79,8 @@ def context_with_article(sample_context: FlowContext, sample_article: Article) -
 
 @pytest.fixture
 def context_with_translated(
-    context_with_article: FlowContext, sample_translated: TranslatedArticle,
+    context_with_article: FlowContext,
+    sample_translated: TranslatedArticle,
 ) -> FlowContext:
     context_with_article.translated = sample_translated
     return context_with_article
