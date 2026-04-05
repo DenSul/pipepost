@@ -96,6 +96,7 @@ export DEEPSEEK_API_KEY=your-key  # or OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.
 # List available components
 pipepost sources
 pipepost destinations
+pipepost styles
 pipepost flows
 
 # Run a pipeline flow
@@ -427,6 +428,23 @@ class MyCMSDestination(Destination):
 register_destination("my-cms", MyCMSDestination())
 ```
 
+## Adding a Custom Style
+
+Register new adapt styles without modifying existing code:
+
+```python
+from pipepost.core.registry import register_style
+
+register_style("twitter", """
+Adapt the article into a Twitter/X thread format:
+- First tweet: hook + key insight (max 280 chars)
+- Follow-up tweets: supporting points
+- Last tweet: source link + call to action
+""")
+```
+
+Then use it: `pipepost run default --source hackernews` with `flow.adapt.style: twitter` in your config.
+
 ## Telegram Bot
 
 PipePost includes an interactive Telegram bot for human-in-the-loop content curation:
@@ -543,6 +561,9 @@ mypy --strict pipepost/
 
 # Test
 pytest tests/
+
+# Integration tests (hits real APIs)
+pytest tests/test_integration.py -v
 ```
 
 ## Contributing
