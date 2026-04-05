@@ -135,9 +135,7 @@ def resolve_env_vars(data: object) -> object:
     value of the corresponding environment variable (or an empty string if unset).
     """
     if isinstance(data, str):
-        return re.sub(
-            r"\$\{([^}]+)\}", lambda m: os.environ.get(m.group(1), ""), data
-        )
+        return re.sub(r"\$\{([^}]+)\}", lambda m: os.environ.get(m.group(1), ""), data)
     if isinstance(data, dict):
         return {k: resolve_env_vars(v) for k, v in data.items()}
     if isinstance(data, list):
