@@ -3,7 +3,7 @@ name = "pipepost"
 version = "0.1.0"
 description = "Open-source AI content curation pipeline — scout, translate, publish"
 readme = "README.md"
-license = {text = "AGPL-3.0"}
+license = "AGPL-3.0-only"
 requires-python = ">=3.11"
 authors = [{name = "Denis Sultanov", email = "denis@denishub.dev"}]
 keywords = [
@@ -22,7 +22,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: GNU Affero General Public License v3",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",

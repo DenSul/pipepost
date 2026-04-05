@@ -70,7 +70,10 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 ## Quick Start
 
 ```bash
-# Install from source
+# Install from PyPI
+pip install pipepost
+
+# Or from source
 git clone https://github.com/DenSul/pipepost && cd pipepost
 pip install -e .
 
