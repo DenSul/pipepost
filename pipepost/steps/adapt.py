@@ -94,7 +94,7 @@ class AdaptStep(Step):
         before_sleep=lambda rs: logger.warning(
             "LLM call attempt %d failed: %s — retrying",
             rs.attempt_number,
-            rs.outcome.exception(),
+            rs.outcome.exception() if rs.outcome else "unknown",
         ),
     )
     async def _call_llm(self, prompt: str) -> str:

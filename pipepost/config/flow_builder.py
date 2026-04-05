@@ -10,9 +10,12 @@ from pipepost.exceptions import ConfigError
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pipepost.config.loader import DestinationConfig, PipePostConfig
     from pipepost.core.flow import Flow
     from pipepost.core.step import Step
+    from pipepost.destinations.base import Destination
     from pipepost.storage.sqlite import SQLiteStorage
 
 logger = logging.getLogger(__name__)
@@ -26,7 +29,7 @@ def build_destination_from_config(dest_config: DestinationConfig) -> None:
     from pipepost.destinations.webhook import WebhookDestination
 
     dest_type = dest_config.type
-    factories = {
+    factories: dict[str, Callable[[], Destination]] = {
         "markdown": lambda: MarkdownDestination(output_dir=dest_config.output_dir),
         "webhook": lambda: WebhookDestination(
             url=dest_config.url,
