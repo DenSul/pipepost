@@ -51,12 +51,13 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 ## Quick Start
 
 ```bash
-# Install
-pip install pipepost
+# Install from source
+git clone https://github.com/DenSul/pipepost && cd pipepost
+pip install -e .
 
 # Configure
 export PIPEPOST_MODEL=deepseek/deepseek-chat
-export OPENAI_API_KEY=your-key
+export DEEPSEEK_API_KEY=your-key  # or OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.
 
 # List available components
 pipepost sources
