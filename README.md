@@ -63,8 +63,8 @@ pipepost sources
 pipepost destinations
 pipepost flows
 
-# Run a curation flow
-pipepost run curate --source hackernews --dest webhook
+# Run a pipeline flow
+pipepost run default --source hackernews --dest webhook --lang ru
 
 # Check health
 pipepost health
@@ -73,9 +73,9 @@ pipepost health
 ## Architecture
 
 ```
-Source → Scout → Fetch → Translate → Validate → Publish → Destination
-  │                                                            │
-  HN, Reddit, RSS, Search              Webhook, WordPress, Ghost, .md
+Source → Fetch → Translate → Validate → Publish → Destination
+  │                                                      │
+  HN, Reddit, RSS, Search          Webhook, WordPress, Ghost, .md
 ```
 
 Every step is independent and composable. Create custom flows by chaining steps:
@@ -289,7 +289,7 @@ docker compose up -d
 
 # Or build manually
 docker build -t pipepost .
-docker run -v ./pipepost.yaml:/app/config/pipepost.yaml pipepost run curate
+docker run -v ./pipepost.yaml:/app/config/pipepost.yaml pipepost run default
 ```
 
 ## Development
