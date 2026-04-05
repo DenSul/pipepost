@@ -43,7 +43,8 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 - 📡 **Multiple Sources** — HackerNews, Reddit, RSS/Atom, DuckDuckGo search
 - 🌍 **AI Translation** — Full paragraph-by-paragraph translation via any LLM (DeepSeek, Claude, GPT, Qwen, etc.)
 - 📝 **Multiple Destinations** — Webhook (WordPress, Ghost, custom API), Markdown files
-- 🔄 **Composable Flows** — Chain steps: scout → fetch → translate → validate → publish
+- 🔄 **Composable Flows** — Chain steps: dedup → scout → fetch → translate → validate → publish
+- 💾 **Deduplication** — SQLite-backed persistence prevents re-publishing across runs
 - 🧩 **Plugin Architecture** — Add sources and destinations with a single file
 - ⚙️ **YAML Configuration** — Configure everything without code
 - 🐳 **Docker Ready** — `docker compose up` and go
@@ -74,27 +75,35 @@ pipepost health
 ## Architecture
 
 ```
-Source → Fetch → Translate → Validate → Publish → Destination
-  │                                                      │
-  HN, Reddit, RSS, Search          Webhook, WordPress, Ghost, .md
+Source → Dedup → Scout → Fetch → Translate → Validate → Publish → Persist
+  │                                                                   │
+  HN, Reddit, RSS, Search                    Webhook, WordPress, Ghost, .md
 ```
 
-Every step is independent and composable. Create custom flows by chaining steps:
+Every step is independent and composable. The default flow runs end-to-end: loads published URLs from SQLite, scouts candidates from a source, fetches content, translates via LLM, validates quality, publishes, and persists the URL to avoid duplicates.
+
+Create custom flows by chaining steps:
 
 ```python
 from pipepost.core import Flow
-from pipepost.steps.fetch import FetchStep
-from pipepost.steps.translate import TranslateStep
-from pipepost.steps.validate import ValidateStep
-from pipepost.steps.publish import PublishStep
+from pipepost.steps import (
+    DeduplicationStep, FetchStep, PostPublishStep,
+    PublishStep, ScoutStep, TranslateStep, ValidateStep,
+)
+from pipepost.storage import SQLiteStorage
+
+storage = SQLiteStorage(db_path="my_project.db")
 
 my_flow = Flow(
     name="my-pipeline",
     steps=[
+        DeduplicationStep(storage=storage),
+        ScoutStep(max_candidates=20),
         FetchStep(max_chars=15000),
         TranslateStep(model="deepseek/deepseek-chat", target_lang="ru"),
         ValidateStep(min_content_len=500),
         PublishStep(destination_name="webhook"),
+        PostPublishStep(storage=storage),
     ],
 )
 ```
@@ -192,10 +201,13 @@ sources:
 
 | Step | Description |
 |------|-------------|
+| `dedup` | Load published URLs from SQLite to prevent re-processing |
+| `scout` | Fetch candidates from a source (HN, Reddit, RSS, search) |
 | `fetch` | Download article, extract content as markdown, get og:image |
 | `translate` | Translate via LLM (LiteLLM — supports 100+ models) |
 | `validate` | Check translation quality (length, ratio, required fields) |
 | `publish` | Send to configured destination |
+| `post_publish` | Persist published URL to SQLite for future deduplication |
 
 ## Configuration
 

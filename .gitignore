@@ -43,5 +43,8 @@ Thumbs.db
 *.log
 output/
 
+# Storage
+*.db
+
 # Claude Code
 .claude/
