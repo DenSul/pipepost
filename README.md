@@ -8,10 +8,10 @@
 ```
 
 [![CI](https://github.com/densul/pipepost/actions/workflows/ci.yml/badge.svg)](https://github.com/densul/pipepost/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/pipepost.svg)](https://pypi.org/project/pipepost/)
+[![PyPI version](https://img.shields.io/pypi/v/pipepost)](https://pypi.org/project/pipepost/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-396%20passed-brightgreen.svg)](https://github.com/densul/pipepost)
-[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](https://github.com/densul/pipepost)
+[![Tests](https://img.shields.io/badge/tests-396_passed-brightgreen)](https://github.com/densul/pipepost)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](https://github.com/densul/pipepost)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-green.svg)](LICENSE)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
@@ -20,13 +20,14 @@
 **Open-source AI content curation pipeline** -- scout, translate, and publish articles from any domain automatically.
 
 ```
-  HackerNews ─┐                                              ┌─ Blog (webhook)
-  Reddit     ─┤   ┌───────┐   ┌──────────┐   ┌──────────┐   ├─ Telegram channel
-  RSS/Atom   ─┼──>│ Scout ├──>│Translate ├──>│ Publish  ├──>├─ Markdown files
-  DuckDuckGo ─┤   │ + Score│   │ + Adapt  │   │ + Fanout │   ├─ OpenClaw (23+ channels)
-  Custom     ─┘   └───────┘   └──────────┘   └──────────┘   └─ Custom destination
-                    AI ranks      AI translates    Publishes to
-                    best articles  & adapts style   multiple targets
+  Sources            Pipeline                          Destinations
+ +------------+    +----------+   +-----------+   +-----------+    +---------------------+
+ | HackerNews |    |  Scout   |   | Translate |   |  Publish  |    | Blog (webhook)      |
+ | Reddit     |--->|  + Score |--->| + Adapt   |--->| + Fanout  |--->| Telegram channel    |
+ | RSS/Atom   |    |          |   |           |   |           |    | Markdown files      |
+ | DuckDuckGo |    | AI ranks |   | AI adapts |   | to 1 or N |    | OpenClaw (23+ chats)|
+ | Custom     |    | articles |   | style     |   | targets   |    | Custom destination  |
+ +------------+    +----------+   +-----------+   +-----------+    +---------------------+
 ```
 
 PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and search engines, translates them to your target language using AI, and publishes to your blog or CMS. Works for any niche -- tech, business, health, lifestyle, and more.
