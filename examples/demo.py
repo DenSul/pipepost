@@ -32,25 +32,33 @@ RED = "\033[31m"
 RESET = "\033[0m"
 
 
+def _safe_print(text: str) -> None:
+    """Print with fallback for Windows cp1251 encoding issues."""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        print(text.encode("utf-8", errors="replace").decode("utf-8", errors="replace"))
+
+
 def step(icon: str, name: str, detail: str = "") -> None:
     """Print a step marker."""
     suffix = f" {DIM}{detail}{RESET}" if detail else ""
-    print(f"\n  {icon}  {BOLD}{name}{RESET}{suffix}")
+    _safe_print(f"\n  {icon}  {BOLD}{name}{RESET}{suffix}")
 
 
 def info(text: str) -> None:
     """Print an info line."""
-    print(f"     {DIM}{text}{RESET}")
+    _safe_print(f"     {DIM}{text}{RESET}")
 
 
 def success(text: str) -> None:
     """Print a success line."""
-    print(f"     {GREEN}{text}{RESET}")
+    _safe_print(f"     {GREEN}{text}{RESET}")
 
 
 def item(text: str) -> None:
     """Print a list item."""
-    print(f"     {CYAN}>{RESET} {text}")
+    _safe_print(f"     {CYAN}>{RESET} {text}")
 
 
 async def main() -> None:
@@ -60,12 +68,12 @@ async def main() -> None:
         sys.exit(1)
 
     print(f"\n{BOLD}{MAGENTA}{'=' * 60}{RESET}")
-    print(f"{BOLD}{MAGENTA}  PipePost — AI Content Curation Pipeline{RESET}")
+    _safe_print(f"{BOLD}{MAGENTA}  PipePost -- AI Content Curation Pipeline{RESET}")
     print(f"{BOLD}{MAGENTA}{'=' * 60}{RESET}")
     print(f"  {DIM}Model: {model}{RESET}")
 
     # --- DEDUP ---
-    step("💾", "Dedup", "loading published URLs")
+    step("[DB]", "Dedup", "loading published URLs")
     from pipepost.storage.sqlite import SQLiteStorage
 
     storage = SQLiteStorage(db_path=":memory:")
@@ -73,7 +81,7 @@ async def main() -> None:
     info(f"{len(existing)} URLs in database")
 
     # --- SCOUT ---
-    step("📡", "Scout", "HackerNews top stories")
+    step("[>>]", "Scout", "HackerNews top stories")
     from pipepost.core.registry import discover_all, get_source
 
     discover_all()
@@ -86,7 +94,7 @@ async def main() -> None:
         item(f"{YELLOW}{score_str}{RESET}  {c.title[:55]}")
 
     # --- FETCH ---
-    step("📥", "Fetch", "downloading article content")
+    step("[DL]", "Fetch", "downloading article content")
     from pipepost.core.context import FlowContext
     from pipepost.steps.fetch import FetchStep
 
@@ -105,7 +113,7 @@ async def main() -> None:
     info(f"Formatting preserved: code={has_code} links={has_links} images={has_images}")
 
     # --- TRANSLATE ---
-    step("🌍", "Translate", f"via {model}")
+    step("[TR]", "Translate", f"via {model}")
 
     # Use openai SDK directly (litellm has Windows Long Path issues)
     from openai import AsyncOpenAI
@@ -140,14 +148,14 @@ async def main() -> None:
     info(f"Content: {len(parsed['content_translated'])} chars")
 
     # --- VALIDATE ---
-    step("✅", "Validate", "quality checks")
+    step("[OK]", "Validate", "quality checks")
     ratio = len(parsed["content_translated"]) / max(len(ctx.selected.content), 1)
     info(f"Translation ratio: {ratio:.0%}")
     info(f"Content length: {len(parsed['content_translated'])} chars (min: 200)")
     success("All checks passed")
 
     # --- PUBLISH ---
-    step("📝", "Publish", "saving markdown file")
+    step("[WR]", "Publish", "saving markdown file")
     from pipepost.core.context import TranslatedArticle
     from pipepost.destinations.markdown import MarkdownDestination
 
