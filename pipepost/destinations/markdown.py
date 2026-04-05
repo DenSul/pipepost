@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
 import re
 from pathlib import Path
@@ -71,7 +72,7 @@ class MarkdownDestination(Destination):
         from pipepost.core.context import PublishResult
 
         slug = self._slugify(article.title_translated or article.title)
-        filepath = self.output_dir / f"{slug}.md"
+        slug, filepath = self._unique_filepath(slug)
 
         frontmatter = self._build_frontmatter(article)
         content = frontmatter + article.content_translated
@@ -105,8 +106,23 @@ class MarkdownDestination(Destination):
 
     @staticmethod
     def _slugify(text: str) -> str:
-        """Convert text to URL-friendly slug with transliteration."""
+        """Convert text to URL-friendly slug with date prefix and transliteration."""
+        prefix = datetime.date.today().isoformat()  # noqa: DTZ011
         text = _transliterate(text.lower().strip())
         text = re.sub(r"[^a-z0-9\s-]", "", text)
         text = re.sub(r"[\s_]+", "-", text)
-        return text[:80].strip("-")
+        slug = text[:60].strip("-")
+        return f"{prefix}-{slug}"
+
+    def _unique_filepath(self, slug: str) -> tuple[str, Path]:
+        """Ensure unique filename by appending counter if needed."""
+        filepath = self.output_dir / f"{slug}.md"
+        if not filepath.exists():
+            return slug, filepath
+        counter = 2
+        while True:
+            new_slug = f"{slug}-{counter}"
+            filepath = self.output_dir / f"{new_slug}.md"
+            if not filepath.exists():
+                return new_slug, filepath
+            counter += 1

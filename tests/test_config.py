@@ -5,10 +5,15 @@ from __future__ import annotations
 import pytest
 
 from pipepost.config.loader import (
+    AdaptConfig,
     DestinationConfig,
     FetchConfig,
+    FlowConfig,
     PipePostConfig,
+    PublishFlowConfig,
+    ScoreConfig,
     SourceConfig,
+    StorageConfig,
     TranslateConfig,
     ValidateConfig,
     _apply_env_overrides,
@@ -260,3 +265,73 @@ class TestLoadConfig:
         monkeypatch.chdir(tmp_path)
         cfg = load_config(cli_overrides={"translate.model": "cli-model"})
         assert cfg.translate.model == "cli-model"
+
+
+class TestFlowConfigDefaults:
+    def test_flow_config_default_steps(self):
+        fc = FlowConfig()
+        assert fc.steps == [
+            "dedup",
+            "scout",
+            "fetch",
+            "translate",
+            "validate",
+            "publish",
+            "post_publish",
+        ]
+
+    def test_flow_config_default_on_error(self):
+        fc = FlowConfig()
+        assert fc.on_error == "stop"
+
+    def test_score_config_defaults(self):
+        sc = ScoreConfig()
+        assert sc.niche == "general"
+        assert sc.max_score_candidates == 5
+
+    def test_adapt_config_defaults(self):
+        ac = AdaptConfig()
+        assert ac.style == "blog"
+
+    def test_publish_flow_config_defaults(self):
+        pc = PublishFlowConfig()
+        assert pc.destination_name == "default"
+        assert pc.destination_names == []
+
+    def test_storage_config_defaults(self):
+        sc = StorageConfig()
+        assert sc.db_path == "pipepost.db"
+
+    def test_pipepost_config_has_flow(self):
+        cfg = PipePostConfig()
+        assert isinstance(cfg.flow, FlowConfig)
+        assert cfg.flow.on_error == "stop"
+
+    def test_full_config_with_flow_section(self):
+        data = {
+            "sources": [{"name": "hn", "type": "hackernews"}],
+            "translate": {"model": "gpt-4", "target_lang": "es"},
+            "flow": {
+                "steps": ["dedup", "scout", "score", "fetch", "translate", "publish"],
+                "on_error": "skip",
+                "score": {"niche": "tech", "max_score_candidates": 3},
+                "adapt": {"style": "telegram"},
+                "publish": {"destination_name": "webhook"},
+                "storage": {"db_path": "/tmp/custom.db"},
+            },
+        }
+        cfg = PipePostConfig.model_validate(data)
+        assert cfg.flow.steps == [
+            "dedup",
+            "scout",
+            "score",
+            "fetch",
+            "translate",
+            "publish",
+        ]
+        assert cfg.flow.on_error == "skip"
+        assert cfg.flow.score.niche == "tech"
+        assert cfg.flow.score.max_score_candidates == 3
+        assert cfg.flow.adapt.style == "telegram"
+        assert cfg.flow.publish.destination_name == "webhook"
+        assert cfg.flow.storage.db_path == "/tmp/custom.db"

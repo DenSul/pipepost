@@ -66,6 +66,53 @@ class ValidateConfig(BaseModel):
     min_ratio: float = 0.3
 
 
+class ScoreConfig(BaseModel):
+    """Configuration for the scoring step."""
+
+    niche: str = "general"
+    max_score_candidates: int = 5
+
+
+class AdaptConfig(BaseModel):
+    """Configuration for the adapt step."""
+
+    style: str = "blog"
+
+
+class PublishFlowConfig(BaseModel):
+    """Configuration for publish/fanout steps within a flow."""
+
+    destination_name: str = "default"
+    destination_names: list[str] = Field(default_factory=list)
+
+
+class StorageConfig(BaseModel):
+    """Configuration for pipeline storage."""
+
+    db_path: str = "pipepost.db"
+
+
+class FlowConfig(BaseModel):
+    """Configuration for a pipeline flow — step ordering and step-specific settings."""
+
+    steps: list[str] = Field(
+        default_factory=lambda: [
+            "dedup",
+            "scout",
+            "fetch",
+            "translate",
+            "validate",
+            "publish",
+            "post_publish",
+        ]
+    )
+    on_error: str = "stop"
+    score: ScoreConfig = Field(default_factory=ScoreConfig)
+    adapt: AdaptConfig = Field(default_factory=AdaptConfig)
+    publish: PublishFlowConfig = Field(default_factory=PublishFlowConfig)
+    storage: StorageConfig = Field(default_factory=StorageConfig)
+
+
 class PipePostConfig(BaseModel):
     """Root configuration schema for PipePost."""
 
@@ -74,6 +121,7 @@ class PipePostConfig(BaseModel):
     translate: TranslateConfig = Field(default_factory=TranslateConfig)
     fetch: FetchConfig = Field(default_factory=FetchConfig)
     validate_: ValidateConfig = Field(default_factory=ValidateConfig, alias="validate")
+    flow: FlowConfig = Field(default_factory=FlowConfig)
     verbose: bool = False
 
     model_config = {"populate_by_name": True}

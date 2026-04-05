@@ -31,6 +31,7 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 - [Steps](#steps)
 - [Configuration](#configuration)
 - [Telegram Bot](#telegram-bot)
+- [OpenClaw Integration](#openclaw-integration)
 - [Adding a Custom Source](#adding-a-custom-source)
 - [Adding a Custom Destination](#adding-a-custom-destination)
 - [Supported LLM Models](#supported-llm-models)
@@ -43,16 +44,17 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 
 - 📡 **Multiple Sources** — HackerNews, Reddit, RSS/Atom, DuckDuckGo search
 - 🌍 **AI Translation** — Full paragraph-by-paragraph translation via any LLM (DeepSeek, Claude, GPT, Qwen, etc.)
-- 📝 **Multiple Destinations** — Webhook, Markdown, Telegram channels
+- 📝 **Multiple Destinations** — Webhook, Markdown, Telegram, OpenClaw (23+ channels)
 - 🤖 **Telegram Bot** — Interactive curation: scout candidates, approve/reject via inline buttons
 - 🎯 **Smart Scoring** — LLM-based candidate ranking by relevance, originality, and engagement
 - ✍️ **Style Adaptation** — Adapt content for blog, Telegram, newsletter, or Twitter thread
 - 📢 **Fanout Publish** — Publish to multiple destinations simultaneously
+- 📦 **Batch Mode** — Process multiple articles in one run (`--batch -n 5`)
 - 🔄 **Composable Flows** — Chain steps: dedup → scout → score → fetch → translate → adapt → publish
 - 💾 **Deduplication** — SQLite-backed persistence prevents re-publishing across runs
 - 📊 **Prometheus Metrics** — Pipeline runs, step durations, error counters (optional)
+- ⚙️ **Config-Driven Flows** — Define entire pipelines in YAML without writing Python
 - 🧩 **Plugin Architecture** — Add sources and destinations with a single file
-- ⚙️ **YAML Configuration** — Configure everything without code
 - 🐳 **Docker Ready** — `docker compose up` and go
 
 ## Quick Start
@@ -77,6 +79,12 @@ pipepost run default --source hackernews --dest webhook --lang ru
 # Preview without publishing
 pipepost run default --source hackernews --dry-run
 
+# Batch mode — process multiple articles
+pipepost run default --source hackernews --batch -n 5
+
+# Use a config file
+pipepost run --config pipepost.yaml --source hackernews
+
 # Run interactive Telegram bot
 export TELEGRAM_BOT_TOKEN=your-bot-token
 pipepost bot --source hackernews --lang ru
@@ -90,7 +98,7 @@ pipepost health
 ```
 Source → Dedup → Scout → Score → Fetch → Translate → Adapt → Validate → Publish → Persist
   │                                                                            │
-  HN, Reddit, RSS, Search                      Webhook, Markdown, Telegram, Fanout
+  HN, Reddit, RSS, Search              Webhook, Markdown, Telegram, OpenClaw, Fanout
 ```
 
 Every step is independent and composable. The default flow runs end-to-end: loads published URLs from SQLite, scouts candidates, fetches content, translates via LLM, validates quality, publishes, and persists the URL to avoid duplicates.
@@ -212,6 +220,7 @@ sources:
 | `webhook` | POST to any URL (WordPress REST API, Ghost, custom) |
 | `markdown` | Save as `.md` files with YAML frontmatter |
 | `telegram` | Post to Telegram channels/chats via Bot API |
+| `openclaw` | Route through [OpenClaw](https://github.com/openclaw/openclaw) to 23+ messaging platforms |
 
 ## Steps
 
@@ -255,6 +264,26 @@ translate:
   target_lang: ru
   min_ratio: 0.8
 ```
+
+### Config-Driven Flows
+
+Define your entire pipeline in YAML — no Python needed:
+
+```yaml
+flow:
+  steps: [dedup, scout, score, fetch, translate, adapt, validate, publish, post_publish]
+  on_error: stop
+  score:
+    niche: tech
+  adapt:
+    style: telegram
+  publish:
+    destination_name: webhook
+  storage:
+    db_path: my_project.db
+```
+
+Run with: `pipepost run --config pipepost.yaml --source hackernews`
 
 See [examples/pipepost.yaml](examples/pipepost.yaml) for a complete configuration example.
 
@@ -324,6 +353,22 @@ destination:
   bot_token: "your-bot-token"
   chat_id: "@your_channel"
 ```
+
+## OpenClaw Integration
+
+PipePost integrates with [OpenClaw](https://github.com/openclaw/openclaw) — a self-hosted AI assistant platform with 23+ messaging channels (WhatsApp, Slack, Discord, Signal, etc.).
+
+**As a destination** — publish through OpenClaw to all connected channels:
+
+```yaml
+destination:
+  type: openclaw
+  gateway_url: "ws://127.0.0.1:18789"
+  session_id: "my-session"
+  channels: ["telegram", "slack", "discord"]
+```
+
+**As an OpenClaw skill** — see [examples/openclaw-skill/SKILL.md](examples/openclaw-skill/SKILL.md) for a ready-to-use skill that lets OpenClaw agents curate content via PipePost.
 
 ## Supported LLM Models
 
