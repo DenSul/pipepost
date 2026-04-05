@@ -9,6 +9,7 @@ import httpx
 
 from pipepost.destinations.base import Destination
 from pipepost.exceptions import PublishError
+from pipepost.utils.retry import http_retry
 
 
 if TYPE_CHECKING:
@@ -66,8 +67,7 @@ class OpenClawDestination(Destination):
 
         try:
             async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.post(url, json=payload)
-                resp.raise_for_status()
+                resp = await self._post_with_retry(client, url, json=payload)
                 data = resp.json()
         except httpx.HTTPStatusError as exc:
             raise PublishError(
@@ -79,6 +79,17 @@ class OpenClawDestination(Destination):
         message_id = str(data.get("message_id", ""))
 
         return PublishResult(success=True, slug=message_id)
+
+    @staticmethod
+    @http_retry
+    async def _post_with_retry(
+        client: httpx.AsyncClient,
+        url: str,
+        **kwargs: object,
+    ) -> httpx.Response:
+        resp = await client.post(url, **kwargs)  # type: ignore[arg-type]
+        resp.raise_for_status()
+        return resp
 
     @classmethod
     def from_config(cls, config: dict[str, object]) -> OpenClawDestination:

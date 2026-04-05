@@ -9,6 +9,7 @@ import httpx
 
 from pipepost.destinations.base import Destination
 from pipepost.exceptions import PublishError
+from pipepost.utils.retry import http_retry
 
 
 if TYPE_CHECKING:
@@ -43,8 +44,12 @@ class WebhookDestination(Destination):
 
         try:
             async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.post(self.url, json=payload, headers=self.headers)
-                resp.raise_for_status()
+                resp = await self._post_with_retry(
+                    client,
+                    self.url,
+                    json=payload,
+                    headers=self.headers,
+                )
                 data = resp.json()
         except httpx.HTTPStatusError as exc:
             raise PublishError(
@@ -58,6 +63,17 @@ class WebhookDestination(Destination):
             slug=data.get("slug", ""),
             url=data.get("url", ""),
         )
+
+    @staticmethod
+    @http_retry
+    async def _post_with_retry(
+        client: httpx.AsyncClient,
+        url: str,
+        **kwargs: object,
+    ) -> httpx.Response:
+        resp = await client.post(url, **kwargs)  # type: ignore[arg-type]
+        resp.raise_for_status()
+        return resp
 
     @classmethod
     def from_config(cls, config: dict[str, object]) -> WebhookDestination:

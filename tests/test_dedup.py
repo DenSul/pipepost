@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -13,17 +13,21 @@ from pipepost.steps.dedup import DeduplicationStep, PostPublishStep
 @pytest.fixture
 def mock_storage():
     storage = MagicMock()
-    storage.load_existing_urls.return_value = {
-        "https://seen.com/1",
-        "https://seen.com/2",
-    }
+    storage.load_existing_urls = AsyncMock(
+        return_value={
+            "https://seen.com/1",
+            "https://seen.com/2",
+        }
+    )
+    storage.mark_published = AsyncMock()
     return storage
 
 
 @pytest.fixture
 def empty_storage():
     storage = MagicMock()
-    storage.load_existing_urls.return_value = set()
+    storage.load_existing_urls = AsyncMock(return_value=set())
+    storage.mark_published = AsyncMock()
     return storage
 
 

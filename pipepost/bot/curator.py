@@ -9,8 +9,13 @@ from typing import TYPE_CHECKING
 
 import httpx
 
+from pipepost.core.flow import Flow
 from pipepost.core.registry import get_source
 from pipepost.exceptions import PipePostError
+from pipepost.steps.fetch import FetchStep
+from pipepost.steps.publish import PublishStep
+from pipepost.steps.translate import TranslateStep
+from pipepost.steps.validate import ValidateStep
 
 
 if TYPE_CHECKING:
@@ -21,23 +26,38 @@ logger = logging.getLogger(__name__)
 _API_BASE = "https://api.telegram.org/bot"
 
 
+def _build_bot_flow() -> Flow:
+    """Build a lightweight flow for bot-driven publishing.
+
+    Skips scout/dedup since the user manually selects candidates.
+    """
+    return Flow(
+        name="bot",
+        steps=[
+            FetchStep(),
+            TranslateStep(),
+            ValidateStep(),
+            PublishStep(),
+        ],
+    )
+
+
 class CuratorBot:
     """Long-polling Telegram bot for interactive content curation."""
 
     def __init__(
         self,
         bot_token: str,
-        flow_name: str = "default",
         source_name: str = "",
         target_lang: str = "ru",
     ) -> None:
         self.bot_token = bot_token
-        self.flow_name = flow_name
         self.source_name = source_name
         self.target_lang = target_lang
         self._pending: dict[str, Candidate] = {}
         self._offset: int = 0
         self._url_base = f"{_API_BASE}{bot_token}"
+        self._flow = _build_bot_flow()
 
     async def start(self) -> None:
         """Main loop — long-poll for updates and dispatch handlers."""
@@ -162,9 +182,8 @@ class CuratorBot:
         message_id: int,
         candidate: Candidate,
     ) -> None:
-        """Run the full pipeline for a single candidate."""
+        """Run the bot flow pipeline for a single candidate."""
         from pipepost.core.context import FlowContext
-        from pipepost.core.registry import get_flow
 
         await self._edit_message(chat_id, message_id, f"Publishing: {candidate.title}...")
 
@@ -175,9 +194,8 @@ class CuratorBot:
         )
 
         try:
-            flow = get_flow(self.flow_name)
-            result = await flow.run(ctx)
-        except (KeyError, PipePostError) as exc:
+            result = await self._flow.run(ctx)
+        except PipePostError as exc:
             await self._edit_message(chat_id, message_id, f"Error: {exc}")
             return
 

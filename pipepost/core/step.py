@@ -35,6 +35,7 @@ class StepBuildContext:
     # Fetch
     max_chars: int = 20000
     fetch_timeout: float = 30.0
+    cache_ttl: float = 3600.0
 
     # Scoring
     score_model: str = ""

@@ -9,6 +9,7 @@ import httpx
 
 from pipepost.destinations.base import Destination
 from pipepost.exceptions import PublishError
+from pipepost.utils.retry import http_retry
 
 
 if TYPE_CHECKING:
@@ -71,7 +72,8 @@ class TelegramDestination(Destination):
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 if article.cover_image:
-                    resp = await client.post(
+                    resp = await self._post_with_retry(
+                        client,
                         f"{url_base}/sendPhoto",
                         json={
                             "chat_id": self.chat_id,
@@ -81,7 +83,8 @@ class TelegramDestination(Destination):
                         },
                     )
                 else:
-                    resp = await client.post(
+                    resp = await self._post_with_retry(
+                        client,
                         f"{url_base}/sendMessage",
                         json={
                             "chat_id": self.chat_id,
@@ -89,7 +92,6 @@ class TelegramDestination(Destination):
                             "parse_mode": self.parse_mode,
                         },
                     )
-                resp.raise_for_status()
                 data = resp.json()
         except httpx.HTTPStatusError as exc:
             raise PublishError(
@@ -108,6 +110,17 @@ class TelegramDestination(Destination):
             url = f"https://t.me/{channel}/{message_id}"
 
         return PublishResult(success=True, slug=message_id, url=url)
+
+    @staticmethod
+    @http_retry
+    async def _post_with_retry(
+        client: httpx.AsyncClient,
+        url: str,
+        **kwargs: object,
+    ) -> httpx.Response:
+        resp = await client.post(url, **kwargs)  # type: ignore[arg-type]
+        resp.raise_for_status()
+        return resp
 
     @classmethod
     def from_config(cls, config: dict[str, object]) -> TelegramDestination:

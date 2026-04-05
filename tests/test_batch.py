@@ -195,8 +195,8 @@ class TestBatchSkipsExistingUrls:
 
         storage = SQLiteStorage(db_path)
         for i in range(1, 4):
-            storage.mark_published(f"https://example.com/article-{i}", "test-source", f"slug-{i}")
-        storage.close()
+            await storage.mark_published(f"https://example.com/article-{i}", "test-source", f"slug-{i}")
+        await storage.close()
 
         with (
             patch("pipepost.batch.get_source", return_value=source),

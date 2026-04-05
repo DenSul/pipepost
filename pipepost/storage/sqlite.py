@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import contextlib
 import logging
-import sqlite3
-import threading
 from typing import TYPE_CHECKING
+
+import aiosqlite
 
 
 if TYPE_CHECKING:
@@ -27,96 +27,100 @@ CREATE TABLE IF NOT EXISTS published_urls (
 class SQLiteStorage:
     """Persistent storage backed by a local SQLite database.
 
-    Uses a single reusable connection with a threading lock to ensure
-    safe concurrent access from multiple threads.
+    The constructor is synchronous (stores only the path); the actual
+    connection is created lazily on the first async call via ``_get_conn``.
     """
 
     def __init__(self, db_path: str = "pipepost.db") -> None:
         self.db_path = db_path
-        self._lock = threading.Lock()
-        self._conn: sqlite3.Connection | None = sqlite3.connect(db_path, check_same_thread=False)
-        self._conn.execute(_CREATE_TABLE_SQL)
-        self._conn.commit()
-        logger.info("SQLiteStorage initialised: %s", db_path)
+        self._conn: aiosqlite.Connection | None = None
+        logger.info("SQLiteStorage initialised (lazy): %s", db_path)
+
+    # -- internal helpers ----------------------------------------------------
+
+    async def _get_conn(self) -> aiosqlite.Connection:
+        """Return the active connection, creating it on first call."""
+        if self._conn is None:
+            self._conn = await aiosqlite.connect(self.db_path)
+            await self._conn.execute(_CREATE_TABLE_SQL)
+            await self._conn.commit()
+        return self._conn
+
+    async def _ensure_table(self) -> None:
+        """Create the table if it doesn't exist yet."""
+        conn = await self._get_conn()
+        await conn.execute(_CREATE_TABLE_SQL)
+        await conn.commit()
 
     # -- public API ----------------------------------------------------------
 
-    def load_existing_urls(self) -> set[str]:
+    async def load_existing_urls(self) -> set[str]:
         """Return all previously published URLs."""
-        with self._lock:
-            conn = self._get_conn()
-            cursor = conn.execute("SELECT url FROM published_urls")
-            urls = {row[0] for row in cursor.fetchall()}
+        conn = await self._get_conn()
+        cursor = await conn.execute("SELECT url FROM published_urls")
+        rows = await cursor.fetchall()
+        urls = {row[0] for row in rows}
         logger.debug("Loaded %d existing URLs from storage", len(urls))
         return urls
 
-    def mark_published(
+    async def mark_published(
         self,
         url: str,
         source_name: str = "",
         slug: str = "",
     ) -> None:
         """Record a URL as published (duplicates are silently ignored)."""
-        with self._lock:
-            conn = self._get_conn()
-            conn.execute(
-                "INSERT OR IGNORE INTO published_urls (url, source_name, slug) VALUES (?, ?, ?)",
-                (url, source_name, slug),
-            )
-            conn.commit()
+        conn = await self._get_conn()
+        await conn.execute(
+            "INSERT OR IGNORE INTO published_urls (url, source_name, slug) VALUES (?, ?, ?)",
+            (url, source_name, slug),
+        )
+        await conn.commit()
         logger.info("Marked published: %s", url)
 
-    def contains(self, url: str) -> bool:
+    async def contains(self, url: str) -> bool:
         """Check whether a URL has already been published."""
-        with self._lock:
-            conn = self._get_conn()
-            cursor = conn.execute(
-                "SELECT 1 FROM published_urls WHERE url = ?",
-                (url,),
-            )
-            return cursor.fetchone() is not None
+        conn = await self._get_conn()
+        cursor = await conn.execute(
+            "SELECT 1 FROM published_urls WHERE url = ?",
+            (url,),
+        )
+        row = await cursor.fetchone()
+        return row is not None
 
-    def count(self) -> int:
+    async def count(self) -> int:
         """Return total number of published URLs."""
-        with self._lock:
-            conn = self._get_conn()
-            cursor = conn.execute("SELECT COUNT(*) FROM published_urls")
-            result = cursor.fetchone()
+        conn = await self._get_conn()
+        cursor = await conn.execute("SELECT COUNT(*) FROM published_urls")
+        result = await cursor.fetchone()
         return int(result[0]) if result else 0
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the database connection."""
-        with self._lock:
-            if self._conn is not None:
-                self._conn.close()
-                self._conn = None
-                logger.debug("SQLiteStorage connection closed")
+        if self._conn is not None:
+            await self._conn.close()
+            self._conn = None
+            logger.debug("SQLiteStorage connection closed")
 
-    # -- context manager -----------------------------------------------------
+    # -- async context manager -----------------------------------------------
 
-    def __enter__(self) -> SQLiteStorage:
+    async def __aenter__(self) -> SQLiteStorage:
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        self.close()
+        await self.close()
 
     def __del__(self) -> None:
-        """Safety net — close connection if not explicitly closed."""
+        """Safety net -- warn if connection was not explicitly closed."""
         conn = getattr(self, "_conn", None)
         if conn is not None:
             with contextlib.suppress(Exception):
-                conn.close()
-
-    # -- internals -----------------------------------------------------------
-
-    def _get_conn(self) -> sqlite3.Connection:
-        """Return the active connection, raising if already closed."""
-        if self._conn is None:
-            msg = "SQLiteStorage connection is already closed"
-            raise RuntimeError(msg)
-        return self._conn
+                logger.warning(
+                    "SQLiteStorage for %s was not explicitly closed",
+                    getattr(self, "db_path", "?"),
+                )

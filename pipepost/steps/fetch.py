@@ -6,7 +6,7 @@ import asyncio
 import logging
 import re
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import httpx
 from bs4 import BeautifulSoup
@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from pipepost.core.registry import register_step
 from pipepost.core.step import Step, StepBuildContext
 from pipepost.exceptions import FetchError
+from pipepost.utils.cache import TTLCache
 
 
 if TYPE_CHECKING:
@@ -45,15 +46,21 @@ class FetchStep(Step):
         max_chars: int = 20000,
         timeout: float = 30.0,
         max_concurrency: int = _DEFAULT_MAX_CONCURRENCY,
+        cache_ttl: float = 3600.0,
     ) -> None:
         self.max_chars = max_chars
         self.timeout = timeout
         self._semaphore = asyncio.Semaphore(max_concurrency)
+        self._cache: TTLCache | None = TTLCache(ttl_seconds=cache_ttl) if cache_ttl > 0 else None
 
     @classmethod
     def from_config(cls, build_ctx: StepBuildContext) -> FetchStep:
         """Create from StepBuildContext."""
-        return cls(max_chars=build_ctx.max_chars, timeout=build_ctx.fetch_timeout)
+        return cls(
+            max_chars=build_ctx.max_chars,
+            timeout=build_ctx.fetch_timeout,
+            cache_ttl=build_ctx.cache_ttl,
+        )
 
     @asynccontextmanager
     async def rate_limit(self) -> AsyncIterator[None]:
@@ -97,6 +104,20 @@ class FetchStep(Step):
         """Fetch URL content and convert to Article."""
         from pipepost.core.context import Article
 
+        # Check cache first
+        if self._cache is not None:
+            cached = self._cache.get(url)
+            if cached is not None:
+                logger.info("Cache hit for %s", url)
+                cached_tuple = cast("tuple[str, str | None]", cached)
+                return Article(
+                    url=url,
+                    title=title,
+                    content=cached_tuple[0],
+                    cover_image=cached_tuple[1],
+                    metadata=dict(metadata),
+                )
+
         transport = _build_retry_transport()
         async with httpx.AsyncClient(
             transport=transport,
@@ -114,6 +135,10 @@ class FetchStep(Step):
 
             content = self._html_to_markdown(resp.text)
             cover = self._extract_og_image_from_html(resp.text)
+
+        # Store in cache
+        if self._cache is not None:
+            self._cache.set(url, (content, cover))
 
         return Article(
             url=url,

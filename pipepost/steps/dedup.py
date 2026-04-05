@@ -34,7 +34,7 @@ class DeduplicationStep(Step):
 
     async def execute(self, ctx: FlowContext) -> FlowContext:
         """Populate ctx.existing_urls from persistent storage."""
-        ctx.existing_urls = self.storage.load_existing_urls()
+        ctx.existing_urls = await self.storage.load_existing_urls()
         logger.info("Loaded %d existing URLs for dedup", len(ctx.existing_urls))
         return ctx
 
@@ -71,7 +71,7 @@ class PostPublishStep(Step):
     async def execute(self, ctx: FlowContext) -> FlowContext:
         """Record the published URL in persistent storage."""
         if ctx.selected and ctx.published and ctx.published.success:
-            self.storage.mark_published(
+            await self.storage.mark_published(
                 url=ctx.selected.url,
                 source_name=ctx.source_name,
                 slug=ctx.published.slug,

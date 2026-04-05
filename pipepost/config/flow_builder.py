@@ -6,15 +6,21 @@ import contextlib
 import logging
 from typing import TYPE_CHECKING
 
-from pipepost.core.registry import get_destination, get_step_class, register_destination
+from pipepost.core.registry import (
+    get_destination,
+    get_step_class,
+    register_destination,
+    register_source,
+)
 from pipepost.exceptions import ConfigError
 
 
 if TYPE_CHECKING:
-    from pipepost.config.loader import DestinationConfig, PipePostConfig
+    from pipepost.config.loader import DestinationConfig, PipePostConfig, SourceConfig
     from pipepost.core.flow import Flow
     from pipepost.core.step import Step
     from pipepost.destinations.base import Destination
+    from pipepost.sources.base import Source
     from pipepost.storage.sqlite import SQLiteStorage
 
 logger = logging.getLogger(__name__)
@@ -61,6 +67,45 @@ def build_destination_from_config(dest_config: DestinationConfig) -> None:
     logger.info("Registered destination '%s' (also as 'default')", dest_config.type)
 
 
+_SOURCE_TYPE_MAP: dict[str, str] = {
+    "hackernews": "pipepost.sources.hackernews.HackerNewsSource",
+    "api": "pipepost.sources.hackernews.HackerNewsSource",
+    "rss": "pipepost.sources.rss.RSSSource",
+    "reddit": "pipepost.sources.reddit.RedditSource",
+    "search": "pipepost.sources.search.SearchSource",
+}
+
+
+def _build_source_from_config(src_config: SourceConfig) -> Source:
+    """Instantiate a Source from a SourceConfig using its from_config() classmethod."""
+    import importlib
+
+    source_type = src_config.type
+    class_path = _SOURCE_TYPE_MAP.get(source_type)
+    if class_path is None:
+        raise ConfigError(f"Unknown source type: {source_type!r}")
+
+    module_path, class_name = class_path.rsplit(".", 1)
+    module = importlib.import_module(module_path)
+    source_cls = getattr(module, class_name)
+
+    config_dict: dict[str, object] = src_config.model_dump()
+    return source_cls.from_config(config_dict)  # type: ignore[no-any-return]
+
+
+def register_sources_from_config(sources: list[SourceConfig]) -> None:
+    """Create and register sources defined in YAML config.
+
+    Config-defined sources override any auto-discovered defaults with the same
+    name, so that user customisation (custom URLs, queries, subreddits, etc.)
+    takes effect.
+    """
+    for src_config in sources:
+        source = _build_source_from_config(src_config)
+        register_source(src_config.name, source)
+        logger.info("Registered config source '%s' (type=%s)", src_config.name, src_config.type)
+
+
 def build_flow_from_config(config: PipePostConfig) -> Flow:
     """Construct a Flow instance from the validated PipePostConfig.
 
@@ -69,6 +114,10 @@ def build_flow_from_config(config: PipePostConfig) -> Flow:
     """
     from pipepost.core.flow import Flow
     from pipepost.storage.sqlite import SQLiteStorage
+
+    # Register sources from config before building steps (overrides defaults).
+    if config.sources:
+        register_sources_from_config(config.sources)
 
     build_destination_from_config(config.destination)
 

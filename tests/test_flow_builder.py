@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import pytest
 
-from pipepost.config.flow_builder import build_flow_from_config
+from pipepost.config.flow_builder import build_flow_from_config, register_sources_from_config
 from pipepost.config.loader import (
     AdaptConfig,
     FlowConfig,
     PipePostConfig,
     PublishFlowConfig,
     ScoreConfig,
+    SourceConfig,
     StorageConfig,
 )
+from pipepost.core.registry import get_source
 from pipepost.exceptions import ConfigError
 from pipepost.steps.adapt import AdaptStep
 from pipepost.steps.dedup import DeduplicationStep, PostPublishStep
@@ -189,3 +191,84 @@ class TestBuildFlowFromConfig:
         ]
         for step, expected_type in zip(flow.steps, expected_types, strict=True):
             assert isinstance(step, expected_type), f"{step.name} is not {expected_type.__name__}"
+
+
+class TestRegisterSourcesFromConfig:
+    def test_rss_source_registered(self):
+        configs = [
+            SourceConfig(name="my-feed", type="rss", url="https://example.com/rss"),
+        ]
+        register_sources_from_config(configs)
+        source = get_source("my-feed")
+        assert source.name == "my-feed"
+        assert source.source_type == "rss"
+
+    def test_hackernews_source_registered(self):
+        configs = [
+            SourceConfig(name="hackernews", type="hackernews", min_score=200),
+        ]
+        register_sources_from_config(configs)
+        source = get_source("hackernews")
+        assert source.name == "hackernews"
+        from pipepost.sources.hackernews import HackerNewsSource
+
+        assert isinstance(source, HackerNewsSource)
+        assert source.min_score == 200
+
+    def test_reddit_source_registered(self):
+        configs = [
+            SourceConfig(name="reddit", type="reddit", subreddits=["python", "rust"], min_score=50),
+        ]
+        register_sources_from_config(configs)
+        source = get_source("reddit")
+        from pipepost.sources.reddit import RedditSource
+
+        assert isinstance(source, RedditSource)
+        assert source.subreddits == ["python", "rust"]
+
+    def test_search_source_registered(self):
+        configs = [
+            SourceConfig(name="my-search", type="search", queries=["AI news", "LLM"]),
+        ]
+        register_sources_from_config(configs)
+        source = get_source("my-search")
+        from pipepost.sources.search import SearchSource
+
+        assert isinstance(source, SearchSource)
+        assert source.queries == ["AI news", "LLM"]
+
+    def test_unknown_type_raises_config_error(self):
+        configs = [SourceConfig(name="bad", type="ftp")]
+        with pytest.raises(ConfigError, match="Unknown source type"):
+            register_sources_from_config(configs)
+
+    def test_config_source_overrides_default(self):
+        """Config sources should override auto-discovered defaults."""
+        from pipepost.core.registry import register_source
+        from pipepost.sources.hackernews import HackerNewsSource
+
+        # Pre-register a default
+        register_source("hackernews", HackerNewsSource(min_score=50))
+        assert get_source("hackernews").min_score == 50  # type: ignore[union-attr]
+
+        # Override via config
+        configs = [SourceConfig(name="hackernews", type="hackernews", min_score=300)]
+        register_sources_from_config(configs)
+        source = get_source("hackernews")
+        assert isinstance(source, HackerNewsSource)
+        assert source.min_score == 300
+
+    def test_build_flow_registers_sources(self, tmp_path):
+        """build_flow_from_config should register sources before building steps."""
+        cfg = PipePostConfig(
+            sources=[
+                SourceConfig(name="test-rss", type="rss", url="https://example.com/feed"),
+            ],
+            flow=FlowConfig(
+                steps=["fetch"],
+                storage=StorageConfig(db_path=str(tmp_path / "test.db")),
+            ),
+        )
+        build_flow_from_config(cfg)
+        source = get_source("test-rss")
+        assert source.name == "test-rss"

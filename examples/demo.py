@@ -77,7 +77,7 @@ async def main() -> None:
     from pipepost.storage.sqlite import SQLiteStorage
 
     storage = SQLiteStorage(db_path=":memory:")
-    existing = storage.load_existing_urls()
+    existing = await storage.load_existing_urls()
     info(f"{len(existing)} URLs in database")
 
     # --- SCOUT ---
@@ -180,7 +180,7 @@ async def main() -> None:
     print(f"{BOLD}{GREEN}{'=' * 60}{RESET}")
     print(f"  {DIM}Output: {result.url}{RESET}\n")
 
-    storage.close()
+    await storage.close()
 
 
 if __name__ == "__main__":

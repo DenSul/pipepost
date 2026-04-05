@@ -42,7 +42,7 @@ async def run_batch(
     Returns a list of :class:`FlowContext` results, one per article.
     """
     storage = SQLiteStorage(db_path)
-    existing_urls = storage.load_existing_urls()
+    existing_urls = await storage.load_existing_urls()
 
     # Scout ----------------------------------------------------------------
     source = get_source(source_name)
@@ -51,7 +51,7 @@ async def run_batch(
 
     if not filtered:
         logger.info("Batch: no new candidates after dedup filtering")
-        storage.close()
+        await storage.close()
         return []
 
     selected = filtered[:max_articles]
@@ -95,7 +95,7 @@ async def run_batch(
             if result.success:
                 succeeded += 1
                 if ctx.selected:
-                    storage.mark_published(
+                    await storage.mark_published(
                         url=ctx.selected.url,
                         source_name=source_name,
                         slug=result.slug,
@@ -107,7 +107,7 @@ async def run_batch(
             ctx.add_error(f"Publish error: {exc}")
             failed += 1
 
-    storage.close()
+    await storage.close()
 
     skipped = len(selected) - succeeded - failed
     logger.info(

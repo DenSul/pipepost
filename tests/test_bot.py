@@ -8,7 +8,7 @@ import httpx
 import pytest
 import respx
 
-from pipepost.bot.curator import CuratorBot
+from pipepost.bot.curator import CuratorBot, _build_bot_flow
 from pipepost.core.context import Candidate, FlowContext, PublishResult
 
 
@@ -88,6 +88,7 @@ class TestHandleCallback:
         result_ctx = FlowContext()
         result_ctx.published = PublishResult(success=True, slug="published-123")
         mock_flow.run = AsyncMock(return_value=result_ctx)
+        bot._flow = mock_flow
 
         callback = {
             "id": "cb1",
@@ -97,8 +98,7 @@ class TestHandleCallback:
 
         async with httpx.AsyncClient(timeout=60) as client:
             bot._client = client
-            with patch("pipepost.core.registry.get_flow", return_value=mock_flow):
-                await bot._handle_callback(callback)
+            await bot._handle_callback(callback)
 
         # Should have been edited twice: once for "Publishing..." and once for result
         assert edit_route.call_count == 2
@@ -161,3 +161,11 @@ class TestHandleCallback:
 
         body = json.loads(edit_route.calls[0].request.content)
         assert "expired" in body["text"].lower()
+
+
+class TestBuildBotFlow:
+    def test_bot_flow_has_expected_steps(self):
+        flow = _build_bot_flow()
+        step_names = [s.name for s in flow.steps]
+        assert step_names == ["fetch", "translate", "validate", "publish"]
+        assert flow.name == "bot"
