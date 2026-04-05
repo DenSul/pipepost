@@ -75,6 +75,9 @@ include = ["pipepost*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

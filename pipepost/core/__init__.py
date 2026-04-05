@@ -21,7 +21,7 @@ from pipepost.core.registry import (
     register_source,
     register_step,
 )
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 
 
 __all__ = [
@@ -31,6 +31,7 @@ __all__ = [
     "FlowContext",
     "PublishResult",
     "Step",
+    "StepBuildContext",
     "TranslatedArticle",
     "discover_all",
     "get_destination",

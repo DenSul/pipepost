@@ -20,6 +20,7 @@ _sources: dict[str, Source] = {}
 _destinations: dict[str, Destination] = {}
 _steps: dict[str, type[Step]] = {}
 _flows: dict[str, Flow] = {}
+_styles: dict[str, str] = {}
 
 
 def register_source(name: str, source: Source) -> None:
@@ -35,6 +36,11 @@ def register_destination(name: str, dest: Destination) -> None:
 def register_step(name: str, step_cls: type[Step]) -> None:
     """Register a step class by name."""
     _steps[name] = step_cls
+
+
+def register_style(name: str, instructions: str) -> None:
+    """Register a content style by name."""
+    _styles[name] = instructions
 
 
 def register_flow(name: str, flow: Flow) -> None:
@@ -87,6 +93,19 @@ def list_sources() -> list[str]:
 def list_destinations() -> list[str]:
     """List all registered destination names."""
     return sorted(_destinations.keys())
+
+
+def get_style(name: str) -> str:
+    """Get a registered style's instructions by name."""
+    if name not in _styles:
+        msg = f"Style '{name}' not registered. Available: {list_styles()}"
+        raise KeyError(msg)
+    return _styles[name]
+
+
+def list_styles() -> list[str]:
+    """List all registered style names."""
+    return sorted(_styles.keys())
 
 
 def list_flows() -> list[str]:

@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 
 
 if TYPE_CHECKING:
@@ -23,6 +23,14 @@ class ValidateStep(Step):
     def __init__(self, min_content_len: int = 300, min_ratio: float = 0.3) -> None:
         self.min_content_len = min_content_len
         self.min_ratio = min_ratio
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> ValidateStep:
+        """Create from StepBuildContext."""
+        return cls(
+            min_content_len=build_ctx.min_content_len,
+            min_ratio=build_ctx.min_ratio,
+        )
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if no translated article."""

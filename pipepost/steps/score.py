@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
 
 from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 
 
 if TYPE_CHECKING:
@@ -34,6 +34,15 @@ class ScoringStep(Step):
         self.model = model or os.getenv("PIPEPOST_MODEL", "deepseek/deepseek-chat")
         self.max_score_candidates = max_score_candidates
         self.niche = niche
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> ScoringStep:
+        """Create from StepBuildContext."""
+        return cls(
+            model=build_ctx.model or None,
+            max_score_candidates=build_ctx.max_score_candidates,
+            niche=build_ctx.niche,
+        )
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if no candidates or only one candidate (nothing to rank)."""

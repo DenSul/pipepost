@@ -58,3 +58,5 @@ jobs:
 
       - name: Run tests
         run: pytest tests/ -v --tb=short
+        env:
+          PIPEPOST_SKIP_INTEGRATION: "1"

@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
 
-from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.registry import get_style, register_step, register_style
+from pipepost.core.step import Step, StepBuildContext
 from pipepost.exceptions import TranslateError
 
 
@@ -19,9 +19,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_VALID_STYLES = frozenset({"blog", "telegram", "newsletter", "thread"})
-
-_STYLE_INSTRUCTIONS: dict[str, str] = {
+_BUILTIN_STYLES: dict[str, str] = {
     "blog": (
         "Adapt this article for a blog post. Keep full content, improve structure "
         "with headers, add an engaging intro paragraph."
@@ -41,6 +39,9 @@ _STYLE_INSTRUCTIONS: dict[str, str] = {
     ),
 }
 
+for _name, _instructions in _BUILTIN_STYLES.items():
+    register_style(_name, _instructions)
+
 
 class AdaptStep(Step):
     """Adapt translated content for a specific output style (blog, telegram, etc.)."""
@@ -58,6 +59,16 @@ class AdaptStep(Step):
         self.style = style
         self.target_lang = target_lang
         self.max_tokens = max_tokens
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> AdaptStep:
+        """Create from StepBuildContext."""
+        return cls(
+            model=build_ctx.model or None,
+            style=build_ctx.style,
+            target_lang=build_ctx.target_lang,
+            max_tokens=build_ctx.max_tokens,
+        )
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if no translated article."""
@@ -111,7 +122,11 @@ class AdaptStep(Step):
 
     def _build_prompt(self, article: TranslatedArticle) -> str:
         """Build adaptation prompt based on the configured style."""
-        instruction = _STYLE_INSTRUCTIONS.get(self.style, _STYLE_INSTRUCTIONS["blog"])
+        try:
+            instruction = get_style(self.style)
+        except KeyError:
+            logger.warning("Unknown style '%s', falling back to 'blog'", self.style)
+            instruction = get_style("blog")
         lang = self.target_lang
         return (
             f"{instruction} Output in {lang}.\n\n"

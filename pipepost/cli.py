@@ -15,6 +15,7 @@ from pipepost.core.registry import (
     list_destinations,
     list_flows,
     list_sources,
+    list_styles,
 )
 
 
@@ -57,6 +58,18 @@ def cmd_destinations() -> None:
         return
     click.echo("Available destinations:")
     for name in dests:
+        click.echo(f"  • {name}")
+
+
+@main.command("styles")
+def cmd_styles() -> None:
+    """List available content styles."""
+    styles = list_styles()
+    if not styles:
+        click.echo("No styles registered.")
+        return
+    click.echo("Available styles:")
+    for name in styles:
         click.echo(f"  • {name}")
 
 

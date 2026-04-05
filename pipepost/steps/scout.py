@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from pipepost.core.registry import get_source, register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 from pipepost.exceptions import SourceError
 from pipepost.metrics import metrics
 
@@ -24,6 +24,11 @@ class ScoutStep(Step):
 
     def __init__(self, max_candidates: int = 30) -> None:
         self.max_candidates = max_candidates
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> ScoutStep:
+        """Create from StepBuildContext."""
+        return cls(max_candidates=build_ctx.max_candidates)
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if no source name is configured."""

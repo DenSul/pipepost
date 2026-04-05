@@ -6,13 +6,14 @@ import logging
 from typing import TYPE_CHECKING
 
 from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 from pipepost.exceptions import PublishError
 from pipepost.metrics import metrics
 
 
 if TYPE_CHECKING:
     from pipepost.core.context import FlowContext
+    from pipepost.destinations.base import Destination
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,21 @@ class PublishStep(Step):
 
     name = "publish"
 
-    def __init__(self, destination_name: str = "default") -> None:
+    def __init__(
+        self,
+        destination_name: str = "default",
+        destination: Destination | None = None,
+    ) -> None:
         self.destination_name = destination_name
+        self._destination = destination
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> PublishStep:
+        """Create from StepBuildContext."""
+        return cls(
+            destination_name=build_ctx.destination_name,
+            destination=build_ctx.destination,
+        )
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if no translated article, errors present, or dry run."""
@@ -37,7 +51,7 @@ class PublishStep(Step):
         from pipepost.core.context import PublishResult
         from pipepost.core.registry import get_destination
 
-        dest = get_destination(self.destination_name)
+        dest = self._destination or get_destination(self.destination_name)
         translated = ctx.translated
         if not translated:
             ctx.add_error("No article to publish")

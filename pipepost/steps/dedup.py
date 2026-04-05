@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 
 
 if TYPE_CHECKING:
@@ -23,6 +23,14 @@ class DeduplicationStep(Step):
 
     def __init__(self, storage: SQLiteStorage) -> None:
         self.storage = storage
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> DeduplicationStep:
+        """Create from StepBuildContext."""
+        if not build_ctx.storage:
+            msg = "DeduplicationStep requires storage in build context"
+            raise ValueError(msg)
+        return cls(storage=build_ctx.storage)
 
     async def execute(self, ctx: FlowContext) -> FlowContext:
         """Populate ctx.existing_urls from persistent storage."""
@@ -42,6 +50,14 @@ class PostPublishStep(Step):
 
     def __init__(self, storage: SQLiteStorage) -> None:
         self.storage = storage
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> PostPublishStep:
+        """Create from StepBuildContext."""
+        if not build_ctx.storage:
+            msg = "PostPublishStep requires storage in build context"
+            raise ValueError(msg)
+        return cls(storage=build_ctx.storage)
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if nothing was published, publish failed, or dry run."""

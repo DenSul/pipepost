@@ -12,7 +12,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 from pipepost.exceptions import FetchError
 
 
@@ -49,6 +49,11 @@ class FetchStep(Step):
         self.max_chars = max_chars
         self.timeout = timeout
         self._semaphore = asyncio.Semaphore(max_concurrency)
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> FetchStep:
+        """Create from StepBuildContext."""
+        return cls(max_chars=build_ctx.max_chars, timeout=build_ctx.fetch_timeout)
 
     @asynccontextmanager
     async def rate_limit(self) -> AsyncIterator[None]:

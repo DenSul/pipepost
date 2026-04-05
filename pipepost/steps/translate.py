@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
 
 from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 from pipepost.exceptions import TranslateError
 
 
@@ -38,6 +38,15 @@ class TranslateStep(Step):
         self.target_lang = target_lang
         self.max_tokens = max_tokens
         self.min_ratio = min_ratio
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> TranslateStep:
+        """Create from StepBuildContext."""
+        return cls(
+            model=build_ctx.model or None,
+            target_lang=build_ctx.target_lang,
+            max_tokens=build_ctx.max_tokens,
+        )
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if no article selected."""

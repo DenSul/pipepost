@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 
 
 if TYPE_CHECKING:
@@ -64,6 +64,11 @@ class ImageStep(Step):
         self.output_dir = Path(output_dir)
         self.timeout = timeout
         self.max_images = max_images
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> ImageStep:
+        """Create from StepBuildContext."""
+        return cls(output_dir=build_ctx.images_output_dir)
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if there is no translated article."""

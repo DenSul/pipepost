@@ -7,7 +7,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from pipepost.core.registry import register_step
-from pipepost.core.step import Step
+from pipepost.core.step import Step, StepBuildContext
 from pipepost.metrics import metrics
 
 
@@ -28,9 +28,19 @@ class FanoutPublishStep(Step):
         destination_names: list[str],
         *,
         stop_on_first_error: bool = False,
+        destinations: dict[str, Destination] | None = None,
     ) -> None:
         self.destination_names = destination_names
         self.stop_on_first_error = stop_on_first_error
+        self._destinations = destinations
+
+    @classmethod
+    def from_config(cls, build_ctx: StepBuildContext) -> FanoutPublishStep:
+        """Create from StepBuildContext."""
+        return cls(
+            destination_names=build_ctx.destination_names,
+            destinations=build_ctx.destinations,
+        )
 
     def should_skip(self, ctx: FlowContext) -> bool:
         """Skip if no translated article, errors present, or dry run."""
@@ -52,6 +62,9 @@ class FanoutPublishStep(Step):
         # Resolve destinations up front; unknown names become errors.
         destinations: list[tuple[str, Destination]] = []
         for name in self.destination_names:
+            if self._destinations and name in self._destinations:
+                destinations.append((name, self._destinations[name]))
+                continue
             try:
                 dest = get_destination(name)
             except KeyError:

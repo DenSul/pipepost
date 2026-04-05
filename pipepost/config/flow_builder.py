@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import TYPE_CHECKING
 
-from pipepost.core.registry import get_step_class, register_destination
+from pipepost.core.registry import get_destination, get_step_class, register_destination
 from pipepost.exceptions import ConfigError
 
 
@@ -95,44 +96,48 @@ def _build_step(
     config: PipePostConfig,
     storage: SQLiteStorage,
 ) -> Step:
-    """Instantiate a single step by name using config values."""
-    from pipepost.steps.adapt import AdaptStep
-    from pipepost.steps.dedup import DeduplicationStep, PostPublishStep
-    from pipepost.steps.fanout import FanoutPublishStep
-    from pipepost.steps.fetch import FetchStep
-    from pipepost.steps.publish import PublishStep
-    from pipepost.steps.score import ScoringStep
-    from pipepost.steps.scout import ScoutStep
-    from pipepost.steps.translate import TranslateStep
-    from pipepost.steps.validate import ValidateStep
+    """Instantiate a single step by name using config values.
 
-    builders: dict[str, Step] = {
-        "dedup": DeduplicationStep(storage=storage),
-        "scout": ScoutStep(),
-        "score": ScoringStep(
-            niche=config.flow.score.niche,
-            max_score_candidates=config.flow.score.max_score_candidates,
-        ),
-        "fetch": FetchStep(max_chars=config.fetch.max_chars),
-        "translate": TranslateStep(
-            model=config.translate.model,
-            target_lang=config.translate.target_lang,
-        ),
-        "adapt": AdaptStep(
-            style=config.flow.adapt.style,
-            target_lang=config.translate.target_lang,
-        ),
-        "validate": ValidateStep(
-            min_content_len=config.validate_.min_content_len,
-            min_ratio=config.validate_.min_ratio,
-        ),
-        "publish": PublishStep(
-            destination_name=config.flow.publish.destination_name,
-        ),
-        "fanout_publish": FanoutPublishStep(
-            destination_names=config.flow.publish.destination_names,
-        ),
-        "post_publish": PostPublishStep(storage=storage),
-    }
+    Resolves the step class from the registry, then delegates construction
+    to ``StepClass.from_config(build_ctx)`` so each step picks only the
+    config fields it needs.
+    """
+    from pipepost.core.step import StepBuildContext
 
-    return builders[step_name]
+    # Eagerly resolve destinations when possible; fall back to None for lazy lookup.
+    try:
+        resolved_dest: Destination | None = get_destination(
+            config.flow.publish.destination_name,
+        )
+    except KeyError:
+        resolved_dest = None
+
+    resolved_fanout: dict[str, Destination] | None = None
+    if config.flow.publish.destination_names:
+        resolved_fanout = {}
+        for _dn in config.flow.publish.destination_names:
+            with contextlib.suppress(KeyError):
+                resolved_fanout[_dn] = get_destination(_dn)
+        if not resolved_fanout:
+            resolved_fanout = None
+
+    build_ctx = StepBuildContext(
+        storage=storage,
+        model=config.translate.model,
+        target_lang=config.translate.target_lang,
+        max_tokens=config.translate.max_tokens,
+        max_chars=config.fetch.max_chars,
+        fetch_timeout=config.fetch.timeout,
+        niche=config.flow.score.niche,
+        max_score_candidates=config.flow.score.max_score_candidates,
+        style=config.flow.adapt.style,
+        min_content_len=config.validate_.min_content_len,
+        min_ratio=config.validate_.min_ratio,
+        destination_name=config.flow.publish.destination_name,
+        destination_names=config.flow.publish.destination_names,
+        destination=resolved_dest,
+        destinations=resolved_fanout,
+    )
+
+    step_cls = get_step_class(step_name)
+    return step_cls.from_config(build_ctx)
