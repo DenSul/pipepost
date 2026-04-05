@@ -137,6 +137,18 @@ def cmd_run(
         click.echo("Flow completed with no result.")
 
 
+@main.command("bot")
+@click.option("--token", envvar="TELEGRAM_BOT_TOKEN", required=True, help="Telegram bot token")
+@click.option("--source", "-s", default="", help="Default source name")
+@click.option("--lang", "-l", default="ru", help="Target language")
+def cmd_bot(token: str, source: str, lang: str) -> None:
+    """Run interactive Telegram curation bot."""
+    from pipepost.bot.curator import CuratorBot
+
+    bot = CuratorBot(bot_token=token, source_name=source, target_lang=lang)
+    asyncio.run(bot.start())
+
+
 @main.command("health")
 def cmd_health() -> None:
     """Check pipeline health."""
