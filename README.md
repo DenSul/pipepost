@@ -28,6 +28,10 @@
 
 PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and search engines, translates them to your target language using AI, and publishes to your blog or CMS. Works for any niche -- tech, business, health, lifestyle, and more.
 
+<p align="center">
+  <img src="docs/demo.svg" alt="PipePost demo — batch pipeline run" width="720">
+</p>
+
 ---
 
 ## Table of Contents
