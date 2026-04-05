@@ -79,3 +79,11 @@ class TestPostPublishStep:
         step = PostPublishStep(storage=mock_storage)
         ctx = FlowContext(published=PublishResult(success=True, slug="ok"))
         assert step.should_skip(ctx) is False
+
+    def test_post_publish_skips_in_dry_run(self, mock_storage):
+        step = PostPublishStep(storage=mock_storage)
+        ctx = FlowContext(
+            published=PublishResult(success=True, slug="ok"),
+            metadata={"dry_run": True},
+        )
+        assert step.should_skip(ctx) is True

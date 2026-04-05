@@ -43,7 +43,10 @@ class PostPublishStep(Step):
         self.storage = storage
 
     def should_skip(self, ctx: FlowContext) -> bool:
-        """Skip if nothing was published or publish failed."""
+        """Skip if nothing was published, publish failed, or dry run."""
+        if ctx.metadata.get("dry_run"):
+            logger.info("Dry run — skipping post-publish persistence")
+            return True
         if ctx.published is None:
             return True
         return not ctx.published.success

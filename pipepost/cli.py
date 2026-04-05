@@ -76,8 +76,24 @@ def cmd_flows() -> None:
 @click.option("--source", "-s", help="Source name")
 @click.option("--dest", "-d", default="default", help="Destination name")
 @click.option("--lang", "-l", default="ru", help="Target language")
-def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:
+@click.option("--dry-run", is_flag=True, help="Preview pipeline results without publishing")
+@click.option(
+    "--metrics-port", type=int, default=None, help="Expose Prometheus metrics on this port"
+)
+def cmd_run(
+    flow_name: str,
+    source: str | None,
+    dest: str,
+    lang: str,
+    dry_run: bool,
+    metrics_port: int | None,
+) -> None:
     """Run a pipeline flow."""
+    if metrics_port is not None:
+        from pipepost.metrics import metrics as pipeline_metrics
+
+        pipeline_metrics.start_http_server(metrics_port)
+
     try:
         flow = get_flow(flow_name)
     except KeyError:
@@ -87,21 +103,38 @@ def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:
 
     from pipepost.core.context import FlowContext
 
+    metadata: dict[str, object] = {"destination": dest}
+    if dry_run:
+        metadata["dry_run"] = True
+
     ctx = FlowContext(
         source_name=source or "",
         target_lang=lang,
-        metadata={"destination": dest},
+        metadata=metadata,
     )
 
     result = asyncio.run(flow.run(ctx))
 
+    if dry_run:
+        click.echo("Dry run complete — preview of pipeline results:")
+        click.echo(f"  Candidates found: {len(result.candidates)}")
+        if result.selected:
+            click.echo(f"  Selected article: {result.selected.title}")
+            click.echo(f"  Selected URL: {result.selected.url}")
+        if result.translated:
+            click.echo(f"  Translated title: {result.translated.title_translated}")
+            if result.translated.tags:
+                click.echo(f"  Tags: {', '.join(result.translated.tags)}")
+        click.echo(f"  Destination: {dest}")
+        return
+
     if result.published and result.published.success:
-        click.echo(f"✅ Published: {result.published.slug}")
+        click.echo(f"Published: {result.published.slug}")
     elif result.errors:
-        click.echo(f"❌ Errors: {'; '.join(result.errors)}", err=True)
+        click.echo(f"Errors: {'; '.join(result.errors)}", err=True)
         sys.exit(1)
     else:
-        click.echo("⚠️ Flow completed with no result.")
+        click.echo("Flow completed with no result.")
 
 
 @main.command("health")

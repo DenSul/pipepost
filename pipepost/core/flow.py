@@ -7,6 +7,8 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
+from pipepost.metrics import metrics
+
 
 if TYPE_CHECKING:
     from pipepost.core.context import FlowContext
@@ -47,10 +49,12 @@ class Flow:
                 ctx = await step.execute(ctx)
                 elapsed = time.monotonic() - step_start
                 logger.info("Step %s completed in %.1fs", step.name, elapsed)
+                metrics.record_step(step.name, elapsed, success=True)
                 await self._notify_step_complete(step.name, ctx, elapsed)
             except Exception as exc:
                 elapsed = time.monotonic() - step_start
                 ctx = await step.on_error(ctx, exc)
+                metrics.record_step(step.name, elapsed, success=False)
                 await self._notify_step_complete(step.name, ctx, elapsed)
                 if self.on_error == "stop":
                     logger.error(
@@ -72,6 +76,7 @@ class Flow:
             elapsed,
             len(ctx.errors),
         )
+        metrics.record_pipeline_run(self.name, success=not ctx.has_errors)
         return ctx
 
     async def _notify_step_complete(

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from pipepost.core.registry import get_source
 from pipepost.core.step import Step
 from pipepost.exceptions import SourceError
+from pipepost.metrics import metrics
 
 
 if TYPE_CHECKING:
@@ -53,6 +54,7 @@ class ScoutStep(Step):
         )
 
         ctx.candidates = filtered
+        metrics.record_candidates(ctx.source_name, len(filtered))
 
         if not filtered:
             ctx.add_error("No new candidates found")

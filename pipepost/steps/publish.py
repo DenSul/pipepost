@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from pipepost.core.step import Step
 from pipepost.exceptions import PublishError
+from pipepost.metrics import metrics
 
 
 if TYPE_CHECKING:
@@ -24,7 +25,10 @@ class PublishStep(Step):
         self.destination_name = destination_name
 
     def should_skip(self, ctx: FlowContext) -> bool:
-        """Skip if no translated article or errors present."""
+        """Skip if no translated article, errors present, or dry run."""
+        if ctx.metadata.get("dry_run"):
+            logger.info("Dry run — skipping publish")
+            return True
         return ctx.translated is None or ctx.has_errors
 
     async def execute(self, ctx: FlowContext) -> FlowContext:
@@ -43,6 +47,7 @@ class PublishStep(Step):
             ctx.published = result
             if result.success:
                 logger.info("Published to %s: %s", self.destination_name, result.slug)
+                metrics.record_published(self.destination_name)
             else:
                 ctx.add_error(f"Publish failed: {result.error}")
         except PublishError:

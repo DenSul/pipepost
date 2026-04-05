@@ -42,6 +42,13 @@ class TestPublishStepShouldSkip:
         ctx.translated = good_translated
         assert step.should_skip(ctx) is False
 
+    def test_skips_in_dry_run_mode(self, good_translated):
+        step = PublishStep(destination_name="test")
+        ctx = FlowContext()
+        ctx.translated = good_translated
+        ctx.metadata["dry_run"] = True
+        assert step.should_skip(ctx) is True
+
 
 class TestPublishStepExecute:
     @pytest.mark.asyncio

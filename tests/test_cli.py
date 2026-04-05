@@ -7,7 +7,13 @@ from unittest.mock import AsyncMock, patch
 from click.testing import CliRunner
 
 from pipepost.cli import main
-from pipepost.core.context import FlowContext, PublishResult
+from pipepost.core.context import (
+    Article,
+    Candidate,
+    FlowContext,
+    PublishResult,
+    TranslatedArticle,
+)
 
 
 class TestCLISources:
@@ -137,6 +143,55 @@ class TestCLIRun:
             result = runner.invoke(main, ["run", "default"])
         assert result.exit_code == 0
         assert "no result" in result.output.lower()
+
+    def test_dry_run_flag_accepted(self):
+        runner = CliRunner()
+        mock_flow = AsyncMock()
+        mock_flow.run.return_value = FlowContext()
+
+        with (
+            patch("pipepost.cli.discover_all"),
+            patch("pipepost.cli.get_flow", return_value=mock_flow),
+        ):
+            result = runner.invoke(main, ["run", "default", "--dry-run"])
+        assert result.exit_code == 0
+
+    def test_dry_run_shows_preview(self):
+        runner = CliRunner()
+        mock_flow = AsyncMock()
+        ctx_result = FlowContext()
+        ctx_result.candidates = [
+            Candidate(url="https://example.com/1", title="Candidate 1"),
+            Candidate(url="https://example.com/2", title="Candidate 2"),
+        ]
+        ctx_result.selected = Article(
+            url="https://example.com/1",
+            title="Selected Article",
+            content="body",
+        )
+        ctx_result.translated = TranslatedArticle(
+            title="Selected Article",
+            title_translated="Выбранная статья",
+            content="body",
+            content_translated="тело",
+            source_url="https://example.com/1",
+            tags=["python", "async"],
+        )
+        mock_flow.run.return_value = ctx_result
+
+        with (
+            patch("pipepost.cli.discover_all"),
+            patch("pipepost.cli.get_flow", return_value=mock_flow),
+        ):
+            result = runner.invoke(main, ["run", "default", "--dry-run"])
+        assert result.exit_code == 0
+        assert "Dry run" in result.output
+        assert "Selected Article" in result.output
+        assert "https://example.com/1" in result.output
+        assert "Выбранная статья" in result.output
+        assert "python" in result.output
+        assert "Candidates found: 2" in result.output
+        assert "Destination: default" in result.output
 
     def test_run_passes_source_and_lang(self):
         runner = CliRunner()
