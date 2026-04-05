@@ -6,6 +6,7 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING
 
+from pipepost.core.registry import register_step
 from pipepost.core.step import Step
 from pipepost.metrics import metrics
 
@@ -117,3 +118,6 @@ class FanoutPublishStep(Step):
         logger.info("Published to %d/%d destinations (%s)", success_count, total, summary)
 
         return ctx
+
+
+register_step("fanout_publish", FanoutPublishStep)

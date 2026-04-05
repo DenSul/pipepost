@@ -26,7 +26,15 @@ class RSSSource(Source):
 
     source_type = "rss"
 
-    def __init__(self, name: str, feed_url: str, max_items: int = 20) -> None:
+    def __init__(
+        self,
+        name: str,
+        feed_url: str,
+        max_items: int = 20,
+        *,
+        max_concurrency: int = 5,
+    ) -> None:
+        super().__init__(max_concurrency=max_concurrency)
         self.name = name
         self.feed_url = feed_url
         self.max_items = max_items
@@ -34,7 +42,10 @@ class RSSSource(Source):
     async def fetch_candidates(self, limit: int = 10) -> list[Candidate]:
         """Fetch and parse the RSS/Atom feed."""
         try:
-            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+            async with (
+                httpx.AsyncClient(timeout=15, follow_redirects=True) as client,
+                self.rate_limit(),
+            ):
                 resp = await client.get(
                     self.feed_url,
                     headers={"User-Agent": _USER_AGENT},

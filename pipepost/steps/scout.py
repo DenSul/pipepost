@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from pipepost.core.registry import get_source
+from pipepost.core.registry import get_source, register_step
 from pipepost.core.step import Step
 from pipepost.exceptions import SourceError
 from pipepost.metrics import metrics
@@ -60,3 +60,6 @@ class ScoutStep(Step):
             ctx.add_error("No new candidates found")
 
         return ctx
+
+
+register_step("scout", ScoutStep)

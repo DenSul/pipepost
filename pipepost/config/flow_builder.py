@@ -5,31 +5,54 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from pipepost.core.registry import get_step_class, register_destination
 from pipepost.exceptions import ConfigError
 
 
 if TYPE_CHECKING:
-    from pipepost.config.loader import PipePostConfig
+    from pipepost.config.loader import DestinationConfig, PipePostConfig
     from pipepost.core.flow import Flow
     from pipepost.core.step import Step
     from pipepost.storage.sqlite import SQLiteStorage
 
 logger = logging.getLogger(__name__)
 
-_KNOWN_STEPS = frozenset(
-    {
-        "dedup",
-        "scout",
-        "score",
-        "fetch",
-        "translate",
-        "adapt",
-        "validate",
-        "publish",
-        "fanout_publish",
-        "post_publish",
+
+def build_destination_from_config(dest_config: DestinationConfig) -> None:
+    """Create a Destination from config and register it under its type name + 'default'."""
+    from pipepost.destinations.markdown import MarkdownDestination
+    from pipepost.destinations.openclaw import OpenClawDestination
+    from pipepost.destinations.telegram import TelegramDestination
+    from pipepost.destinations.webhook import WebhookDestination
+
+    dest_type = dest_config.type
+    factories = {
+        "markdown": lambda: MarkdownDestination(output_dir=dest_config.output_dir),
+        "webhook": lambda: WebhookDestination(
+            url=dest_config.url,
+            headers=dest_config.headers or None,
+        ),
+        "telegram": lambda: TelegramDestination.from_config(
+            {
+                "bot_token": dest_config.headers.get("bot_token", ""),
+                "chat_id": dest_config.headers.get("chat_id", ""),
+            }
+        ),
+        "openclaw": lambda: OpenClawDestination.from_config(
+            {
+                "gateway_url": dest_config.url,
+            }
+        ),
     }
-)
+
+    factory = factories.get(dest_type)
+    if not factory:
+        raise ConfigError(f"Unknown destination type: {dest_type}")
+
+    dest = factory()
+    register_destination(dest_type, dest)
+    register_destination("default", dest)
+    logger.info("Registered destination '%s' (also as 'default')", dest_type)
 
 
 def build_flow_from_config(config: PipePostConfig) -> Flow:
@@ -41,11 +64,15 @@ def build_flow_from_config(config: PipePostConfig) -> Flow:
     from pipepost.core.flow import Flow
     from pipepost.storage.sqlite import SQLiteStorage
 
+    build_destination_from_config(config.destination)
+
     storage = SQLiteStorage(db_path=config.flow.storage.db_path)
 
-    unknown = set(config.flow.steps) - _KNOWN_STEPS
-    if unknown:
-        raise ConfigError(f"Unknown step(s) in flow config: {', '.join(sorted(unknown))}")
+    for step_name in config.flow.steps:
+        try:
+            get_step_class(step_name)
+        except KeyError as exc:
+            raise ConfigError(f"Unknown step(s) in flow config: {step_name}") from exc
 
     steps: list[Step] = []
     for step_name in config.flow.steps:

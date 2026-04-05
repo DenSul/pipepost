@@ -7,6 +7,9 @@ import os
 import re
 from typing import TYPE_CHECKING
 
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
+
+from pipepost.core.registry import register_step
 from pipepost.core.step import Step
 from pipepost.exceptions import TranslateError
 
@@ -16,7 +19,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_MAX_RETRIES = 2
 _VALID_STYLES = frozenset({"blog", "telegram", "newsletter", "thread"})
 
 _STYLE_INSTRUCTIONS: dict[str, str] = {
@@ -69,7 +71,12 @@ class AdaptStep(Step):
 
         article = ctx.translated
         prompt = self._build_prompt(article)
-        raw = await self._call_llm(prompt)
+        try:
+            raw = await self._call_llm(prompt)
+        except TranslateError:
+            raise
+        except Exception as exc:
+            raise TranslateError(f"LLM call failed after retries: {exc}") from exc
 
         parsed = self._parse_output(raw)
         if not parsed:
@@ -79,31 +86,28 @@ class AdaptStep(Step):
         ctx.metadata["adapted_content"] = parsed["adapted_content"]
         return ctx
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential_jitter(initial=1, max=10),
+        retry=retry_if_exception_type(Exception),
+        reraise=True,
+        before_sleep=lambda rs: logger.warning(
+            "LLM call attempt %d failed: %s — retrying",
+            rs.attempt_number,
+            rs.outcome.exception(),
+        ),
+    )
     async def _call_llm(self, prompt: str) -> str:
-        """Call LLM with one retry on failure."""
+        """Call LLM with tenacity retry and exponential backoff."""
         import litellm
 
-        last_error: Exception | None = None
-        for attempt in range(_MAX_RETRIES):
-            try:
-                response = await litellm.acompletion(
-                    model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=self.max_tokens,
-                    temperature=0.3,
-                )
-                return str(response.choices[0].message.content or "")
-            except Exception as exc:
-                last_error = exc
-                if attempt < _MAX_RETRIES - 1:
-                    logger.warning(
-                        "LLM call attempt %d failed: %s — retrying",
-                        attempt + 1,
-                        exc,
-                    )
-                    continue
-
-        raise TranslateError(f"LLM call failed after {_MAX_RETRIES} attempts: {last_error}")
+        response = await litellm.acompletion(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=self.max_tokens,
+            temperature=0.3,
+        )
+        return str(response.choices[0].message.content or "")
 
     def _build_prompt(self, article: TranslatedArticle) -> str:
         """Build adaptation prompt based on the configured style."""
@@ -133,3 +137,6 @@ class AdaptStep(Step):
             "adapted_title": sections.get("ADAPTED_TITLE", ""),
             "adapted_content": sections["ADAPTED_CONTENT"],
         }
+
+
+register_step("adapt", AdaptStep)

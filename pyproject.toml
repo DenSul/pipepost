@@ -42,6 +42,7 @@ dependencies = [
     "defusedxml>=0.7",
     "duckduckgo-search>=6.0",
     "markdownify>=0.14",
+    "tenacity>=8.2",
 ]
 
 [project.optional-dependencies]

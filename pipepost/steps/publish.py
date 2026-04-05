@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from pipepost.core.registry import register_step
 from pipepost.core.step import Step
 from pipepost.exceptions import PublishError
 from pipepost.metrics import metrics
@@ -59,3 +60,6 @@ class PublishStep(Step):
             logger.error(error_msg)
 
         return ctx
+
+
+register_step("publish", PublishStep)

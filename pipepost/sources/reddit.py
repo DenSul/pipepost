@@ -28,7 +28,10 @@ class RedditSource(Source):
         self,
         subreddits: list[str] | None = None,
         min_score: int = 100,
+        *,
+        max_concurrency: int = 5,
     ) -> None:
+        super().__init__(max_concurrency=max_concurrency)
         self.subreddits: list[str] = subreddits or []
         self.min_score = min_score
 
@@ -45,11 +48,12 @@ class RedditSource(Source):
         async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
             for sub in self.subreddits:
                 try:
-                    resp = await client.get(
-                        f"https://www.reddit.com/r/{sub}/top.json?t=day&limit=10",
-                        headers={"User-Agent": "PipePost/1.0"},
-                    )
-                    resp.raise_for_status()
+                    async with self.rate_limit():
+                        resp = await client.get(
+                            f"https://www.reddit.com/r/{sub}/top.json?t=day&limit=10",
+                            headers={"User-Agent": "PipePost/1.0"},
+                        )
+                        resp.raise_for_status()
                     data = resp.json()
                     for post in data.get("data", {}).get("children", []):
                         post_data = post.get("data", {})

@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from pipepost.core.context import Candidate
+
+_DEFAULT_MAX_CONCURRENCY = 5
 
 
 class Source(ABC):
@@ -15,6 +21,16 @@ class Source(ABC):
 
     name: str
     source_type: str  # "api" | "rss" | "scrape" | "search"
+    _semaphore: asyncio.Semaphore
+
+    def __init__(self, *, max_concurrency: int = _DEFAULT_MAX_CONCURRENCY) -> None:
+        self._semaphore = asyncio.Semaphore(max_concurrency)
+
+    @asynccontextmanager
+    async def rate_limit(self) -> AsyncIterator[None]:
+        """Acquire the concurrency semaphore before making an external call."""
+        async with self._semaphore:
+            yield
 
     @abstractmethod
     async def fetch_candidates(self, limit: int = 10) -> list[Candidate]:

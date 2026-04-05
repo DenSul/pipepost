@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -127,6 +128,23 @@ class PipePostConfig(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+def resolve_env_vars(data: object) -> object:
+    """Recursively resolve ``${VAR_NAME}`` references in config values.
+
+    Any string containing ``${VAR_NAME}`` will have that token replaced with the
+    value of the corresponding environment variable (or an empty string if unset).
+    """
+    if isinstance(data, str):
+        return re.sub(
+            r"\$\{([^}]+)\}", lambda m: os.environ.get(m.group(1), ""), data
+        )
+    if isinstance(data, dict):
+        return {k: resolve_env_vars(v) for k, v in data.items()}
+    if isinstance(data, list):
+        return [resolve_env_vars(item) for item in data]
+    return data
+
+
 def _find_config_file(explicit_path: str | None = None) -> Path | None:
     """Find the config file — explicit path, env var, or default locations."""
     if explicit_path:
@@ -207,6 +225,9 @@ def load_config(
     if yaml_path:
         data = _load_yaml(yaml_path)
         logger.info("Loaded config from %s", yaml_path)
+
+    # 1b. Resolve ${ENV_VAR} references in values
+    data = resolve_env_vars(data)  # type: ignore[assignment]
 
     # 2. Apply env var overrides
     data = _apply_env_overrides(data)

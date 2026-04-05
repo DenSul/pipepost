@@ -2,18 +2,23 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 import httpx
 from bs4 import BeautifulSoup
 
+from pipepost.core.registry import register_step
 from pipepost.core.step import Step
 from pipepost.exceptions import FetchError
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from pipepost.core.context import Article, FlowContext
 
 logger = logging.getLogger(__name__)
@@ -22,6 +27,7 @@ _USER_AGENT = "PipePost/1.0 (+https://github.com/DenSul/pipepost)"
 _MAX_RETRIES = 3
 _BACKOFF_FACTOR = 0.5
 _RETRY_STATUSES = {429, 500, 502, 503, 504}
+_DEFAULT_MAX_CONCURRENCY = 5
 
 
 def _build_retry_transport() -> httpx.AsyncHTTPTransport:
@@ -34,9 +40,21 @@ class FetchStep(Step):
 
     name = "fetch"
 
-    def __init__(self, max_chars: int = 20000, timeout: float = 30.0) -> None:
+    def __init__(
+        self,
+        max_chars: int = 20000,
+        timeout: float = 30.0,
+        max_concurrency: int = _DEFAULT_MAX_CONCURRENCY,
+    ) -> None:
         self.max_chars = max_chars
         self.timeout = timeout
+        self._semaphore = asyncio.Semaphore(max_concurrency)
+
+    @asynccontextmanager
+    async def rate_limit(self) -> AsyncIterator[None]:
+        """Acquire the concurrency semaphore before making an external call."""
+        async with self._semaphore:
+            yield
 
     async def execute(self, ctx: FlowContext) -> FlowContext:
         """Fetch the first viable candidate's content."""
@@ -81,8 +99,9 @@ class FetchStep(Step):
             follow_redirects=True,
         ) as client:
             try:
-                resp = await client.get(url, headers={"User-Agent": _USER_AGENT})
-                resp.raise_for_status()
+                async with self.rate_limit():
+                    resp = await client.get(url, headers={"User-Agent": _USER_AGENT})
+                    resp.raise_for_status()
             except httpx.HTTPStatusError as exc:
                 raise FetchError(f"HTTP {exc.response.status_code} for {url}") from exc
             except httpx.RequestError as exc:
@@ -124,3 +143,6 @@ class FetchStep(Step):
         text = md(str(target), heading_style="ATX", code_language="python")
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text[: self.max_chars]
+
+
+register_step("fetch", FetchStep)

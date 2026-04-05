@@ -8,6 +8,9 @@ import os
 import re
 from typing import TYPE_CHECKING
 
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter
+
+from pipepost.core.registry import register_step
 from pipepost.core.step import Step
 
 
@@ -82,8 +85,19 @@ class ScoringStep(Step):
 
         return ctx
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential_jitter(initial=1, max=10),
+        retry=retry_if_exception_type(Exception),
+        reraise=True,
+        before_sleep=lambda rs: logger.warning(
+            "LLM scoring attempt %d failed: %s — retrying",
+            rs.attempt_number,
+            rs.outcome.exception(),
+        ),
+    )
     async def _call_llm(self, prompt: str) -> str:
-        """Call LLM for scoring."""
+        """Call LLM for scoring with tenacity retry and exponential backoff."""
         import litellm
 
         response = await litellm.acompletion(
@@ -151,3 +165,6 @@ class ScoringStep(Step):
                 results.append((zero_idx, score_val))
 
         return results
+
+
+register_step("score", ScoringStep)

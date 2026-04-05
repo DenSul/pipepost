@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from pipepost.core.registry import register_step
 from pipepost.core.step import Step
 
 
@@ -61,3 +62,7 @@ class PostPublishStep(Step):
             )
             logger.info("Persisted published URL: %s", ctx.selected.url)
         return ctx
+
+
+register_step("dedup", DeduplicationStep)
+register_step("post_publish", PostPublishStep)

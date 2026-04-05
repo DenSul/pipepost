@@ -58,6 +58,19 @@ def get_destination(name: str) -> Destination:
     return _destinations[name]
 
 
+def get_step_class(name: str) -> type[Step]:
+    """Get a registered step class by name."""
+    if name not in _steps:
+        msg = f"Step '{name}' not registered. Available: {list(_steps)}"
+        raise KeyError(msg)
+    return _steps[name]
+
+
+def list_steps() -> list[str]:
+    """List all registered step names."""
+    return sorted(_steps.keys())
+
+
 def get_flow(name: str) -> Flow:
     """Get a registered flow by name."""
     if name not in _flows:
@@ -106,5 +119,6 @@ def discover_modules(package_name: str) -> None:
 def discover_all() -> None:
     """Discover all sources, destinations, and flows."""
     discover_modules("pipepost.sources")
+    discover_modules("pipepost.steps")
     discover_modules("pipepost.destinations")
     discover_modules("pipepost.flows")

@@ -102,6 +102,7 @@ def cmd_run(
         pipeline_metrics.start_http_server(metrics_port)
 
     if batch:
+        _ensure_destination(dest)
         _run_batch_mode(
             source=source or "",
             dest=dest,
@@ -112,6 +113,7 @@ def cmd_run(
         return
 
     flow = _resolve_flow(flow_name, config_path)
+    _ensure_destination(dest)
 
     from pipepost.core.context import FlowContext
 
@@ -151,6 +153,22 @@ def cmd_run(
 
 if TYPE_CHECKING:
     from pipepost.core.flow import Flow
+
+
+def _ensure_destination(dest_name: str) -> None:
+    """Register a default markdown destination if none is registered yet."""
+    from pipepost.core.registry import register_destination
+
+    dests = list_destinations()
+    if dest_name in dests or "default" in dests:
+        return
+    # Fallback: register markdown as default when no config is provided
+    from pipepost.destinations.markdown import MarkdownDestination
+
+    md = MarkdownDestination()
+    register_destination("default", md)
+    if dest_name != "default":
+        register_destination(dest_name, md)
 
 
 def _resolve_flow(flow_name: str, config_path: str | None) -> Flow:

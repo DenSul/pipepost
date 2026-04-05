@@ -26,7 +26,8 @@ class HackerNewsSource(Source):
     name = "hackernews"
     source_type = "api"
 
-    def __init__(self, min_score: int = 50) -> None:
+    def __init__(self, min_score: int = 50, *, max_concurrency: int = 5) -> None:
+        super().__init__(max_concurrency=max_concurrency)
         self.min_score = min_score
 
     async def fetch_candidates(self, limit: int = 10) -> list[Candidate]:
@@ -35,8 +36,9 @@ class HackerNewsSource(Source):
 
         try:
             async with httpx.AsyncClient(timeout=15) as client:
-                resp = await client.get(f"{_HN_API_BASE}/topstories.json")
-                resp.raise_for_status()
+                async with self.rate_limit():
+                    resp = await client.get(f"{_HN_API_BASE}/topstories.json")
+                    resp.raise_for_status()
                 story_ids: list[int] = resp.json()[: limit * 2]
 
                 candidates: list[Candidate] = []
@@ -44,8 +46,9 @@ class HackerNewsSource(Source):
                     if len(candidates) >= limit:
                         break
                     try:
-                        item_resp = await client.get(f"{_HN_API_BASE}/item/{sid}.json")
-                        item_resp.raise_for_status()
+                        async with self.rate_limit():
+                            item_resp = await client.get(f"{_HN_API_BASE}/item/{sid}.json")
+                            item_resp.raise_for_status()
                         item = item_resp.json()
                         if not item or item.get("type") != "story" or not item.get("url"):
                             continue

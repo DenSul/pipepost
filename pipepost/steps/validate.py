@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from pipepost.core.registry import register_step
 from pipepost.core.step import Step
 
 
@@ -62,3 +63,6 @@ class ValidateStep(Step):
             )
 
         return ctx
+
+
+register_step("validate", ValidateStep)

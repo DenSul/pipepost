@@ -21,6 +21,7 @@ from pipepost.config.loader import (
     _find_config_file,
     _load_yaml,
     load_config,
+    resolve_env_vars,
 )
 from pipepost.exceptions import ConfigError
 
@@ -265,6 +266,51 @@ class TestLoadConfig:
         monkeypatch.chdir(tmp_path)
         cfg = load_config(cli_overrides={"translate.model": "cli-model"})
         assert cfg.translate.model == "cli-model"
+
+
+class TestResolveEnvVars:
+    def test_resolves_string_values(self, monkeypatch):
+        monkeypatch.setenv("TEST_TOKEN", "secret123")
+        data = {"token": "${TEST_TOKEN}", "nested": {"key": "${TEST_TOKEN}"}, "plain": "hello"}
+        result = resolve_env_vars(data)
+        assert result == {"token": "secret123", "nested": {"key": "secret123"}, "plain": "hello"}
+
+    def test_resolves_in_lists(self, monkeypatch):
+        monkeypatch.setenv("ITEM", "resolved")
+        data = {"items": ["${ITEM}", "literal"]}
+        result = resolve_env_vars(data)
+        assert result == {"items": ["resolved", "literal"]}
+
+    def test_missing_env_var_replaced_with_empty(self, monkeypatch):
+        monkeypatch.delenv("NONEXISTENT_VAR_XYZ", raising=False)
+        data = {"key": "${NONEXISTENT_VAR_XYZ}"}
+        result = resolve_env_vars(data)
+        assert result == {"key": ""}
+
+    def test_partial_substitution(self, monkeypatch):
+        monkeypatch.setenv("HOST", "localhost")
+        data = {"url": "http://${HOST}:8080/path"}
+        result = resolve_env_vars(data)
+        assert result == {"url": "http://localhost:8080/path"}
+
+    def test_non_string_values_unchanged(self):
+        data = {"count": 42, "flag": True, "empty": None}
+        result = resolve_env_vars(data)
+        assert result == {"count": 42, "flag": True, "empty": None}
+
+    def test_load_config_resolves_env_vars(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("MY_MODEL", "gpt-4-turbo")
+        monkeypatch.delenv("PIPEPOST_CONFIG", raising=False)
+        monkeypatch.delenv("PIPEPOST_MODEL", raising=False)
+        monkeypatch.delenv("PIPEPOST_LANG", raising=False)
+        monkeypatch.delenv("PIPEPOST_DEST_URL", raising=False)
+        cfg_file = tmp_path / "pipepost.yaml"
+        cfg_file.write_text(
+            "translate:\n  model: ${MY_MODEL}\n  target_lang: ja\n",
+            encoding="utf-8",
+        )
+        cfg = load_config(config_path=str(cfg_file))
+        assert cfg.translate.model == "gpt-4-turbo"
 
 
 class TestFlowConfigDefaults:

@@ -29,7 +29,10 @@ class SearchSource(Source):
         self,
         name: str = "search",
         queries: list[str] | None = None,
+        *,
+        max_concurrency: int = 5,
     ) -> None:
+        super().__init__(max_concurrency=max_concurrency)
         self.name = name
         self.queries = queries or list(_DEFAULT_QUERIES)
 

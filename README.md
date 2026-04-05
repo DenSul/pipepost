@@ -74,6 +74,9 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 - 📊 **Prometheus Metrics** — Pipeline runs, step durations, error counters (optional)
 - ⚙️ **Config-Driven Flows** — Define entire pipelines in YAML without writing Python
 - 🧩 **Plugin Architecture** — Add sources and destinations with a single file
+- 🔁 **Resilient Retries** — Exponential backoff with jitter for LLM calls (via tenacity)
+- 🚦 **Rate Limiting** — Built-in semaphore-based concurrency control for external APIs
+- 🔐 **Secret References** — Use `${ENV_VAR}` in YAML configs to keep secrets out of files
 - 🐳 **Docker Ready** — `docker compose up` and go
 
 ## Quick Start
@@ -326,6 +329,7 @@ sources:
 | `validate` | Check translation quality (length, ratio, required fields) |
 | `publish` | Send to a single configured destination |
 | `fanout_publish` | Publish to multiple destinations concurrently |
+| `images` | Download images from article content and rewrite URLs to local paths |
 | `post_publish` | Persist published URL to SQLite for future deduplication |
 
 ## Configuration
@@ -368,6 +372,15 @@ flow:
 ```
 
 **Env var overrides:** `PIPEPOST_MODEL`, `PIPEPOST_LANG`, `PIPEPOST_DEST_URL`
+
+**Secret references in YAML:** Use `${ENV_VAR}` syntax to reference environment variables directly in config values. This is useful for keeping secrets out of config files:
+
+```yaml
+destination:
+  type: telegram
+  bot_token: "${TELEGRAM_BOT_TOKEN}"
+  chat_id: "${TELEGRAM_CHAT_ID}"
+```
 
 See [examples/pipepost.yaml](examples/pipepost.yaml) for more examples.
 

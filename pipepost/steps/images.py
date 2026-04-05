@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 
+from pipepost.core.registry import register_step
 from pipepost.core.step import Step
 
 
@@ -171,3 +172,6 @@ class ImageStep(Step):
         for original_url, local_path in url_map.items():
             result = result.replace(original_url, local_path)
         return result
+
+
+register_step("images", ImageStep)
