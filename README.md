@@ -8,7 +8,10 @@
 ```
 
 [![CI](https://github.com/densul/pipepost/actions/workflows/ci.yml/badge.svg)](https://github.com/densul/pipepost/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/pipepost.svg)](https://pypi.org/project/pipepost/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-396%20passed-brightgreen.svg)](https://github.com/densul/pipepost)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](https://github.com/densul/pipepost)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-green.svg)](LICENSE)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
