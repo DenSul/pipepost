@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from pipepost.core.registry import register_source
+from pipepost.exceptions import SourceError
 from pipepost.sources.base import Source
 
 
@@ -32,42 +33,45 @@ class HackerNewsSource(Source):
         """Fetch top HN stories above min_score."""
         from pipepost.core.context import Candidate
 
-        async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.get(f"{_HN_API_BASE}/topstories.json")
-            resp.raise_for_status()
-            story_ids: list[int] = resp.json()[: limit * 2]
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.get(f"{_HN_API_BASE}/topstories.json")
+                resp.raise_for_status()
+                story_ids: list[int] = resp.json()[: limit * 2]
 
-            candidates: list[Candidate] = []
-            for sid in story_ids:
-                if len(candidates) >= limit:
-                    break
-                try:
-                    item_resp = await client.get(f"{_HN_API_BASE}/item/{sid}.json")
-                    item_resp.raise_for_status()
-                    item = item_resp.json()
-                    if not item or item.get("type") != "story" or not item.get("url"):
-                        continue
-                    score = item.get("score", 0)
-                    if score < self.min_score:
-                        continue
-                    candidates.append(
-                        Candidate(
-                            url=item["url"],
-                            title=item.get("title", ""),
-                            snippet=f"Score: {score}, Comments: {item.get('descendants', 0)}",
-                            score=float(score),
-                            source_name=self.name,
-                            metadata={
-                                "hn_id": sid,
-                                "comments": item.get("descendants", 0),
-                            },
-                        ),
-                    )
-                except Exception as exc:
-                    logger.warning("Failed to fetch HN item %s: %s", sid, exc)
+                candidates: list[Candidate] = []
+                for sid in story_ids:
+                    if len(candidates) >= limit:
+                        break
+                    try:
+                        item_resp = await client.get(f"{_HN_API_BASE}/item/{sid}.json")
+                        item_resp.raise_for_status()
+                        item = item_resp.json()
+                        if not item or item.get("type") != "story" or not item.get("url"):
+                            continue
+                        score = item.get("score", 0)
+                        if score < self.min_score:
+                            continue
+                        candidates.append(
+                            Candidate(
+                                url=item["url"],
+                                title=item.get("title", ""),
+                                snippet=f"Score: {score}, Comments: {item.get('descendants', 0)}",
+                                score=float(score),
+                                source_name=self.name,
+                                metadata={
+                                    "hn_id": sid,
+                                    "comments": item.get("descendants", 0),
+                                },
+                            ),
+                        )
+                    except httpx.HTTPError as exc:
+                        logger.warning("Failed to fetch HN item %s: %s", sid, exc)
 
-            candidates.sort(key=lambda c: c.score, reverse=True)
-            return candidates[:limit]
+                candidates.sort(key=lambda c: c.score, reverse=True)
+                return candidates[:limit]
+        except httpx.HTTPError as exc:
+            raise SourceError(f"HackerNews API request failed: {exc}") from exc
 
     @classmethod
     def from_config(cls, config: dict[str, object]) -> HackerNewsSource:

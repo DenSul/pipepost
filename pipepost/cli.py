@@ -76,7 +76,7 @@ def cmd_flows() -> None:
 @click.option("--source", "-s", help="Source name")
 @click.option("--dest", "-d", default="default", help="Destination name")
 @click.option("--lang", "-l", default="ru", help="Target language")
-def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:  # noqa: ARG001
+def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:
     """Run a pipeline flow."""
     try:
         flow = get_flow(flow_name)
@@ -90,9 +90,10 @@ def cmd_run(flow_name: str, source: str | None, dest: str, lang: str) -> None:  
     ctx = FlowContext(
         source_name=source or "",
         target_lang=lang,
+        metadata={"destination": dest},
     )
 
-    result = asyncio.run(flow.run(ctx))  # type: ignore[attr-defined]
+    result = asyncio.run(flow.run(ctx))
 
     if result.published and result.published.success:
         click.echo(f"✅ Published: {result.published.slug}")

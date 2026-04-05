@@ -1,8 +1,42 @@
-# 🚀 PipePost
+```
+         _                          _
+ _ __ (_)_ __   ___ _ __   ___  ___| |_
+| '_ \| | '_ \ / _ \ '_ \ / _ \/ __| __|
+| |_) | | |_) |  __/ |_) | (_) \__ \ |_
+| .__/|_| .__/ \___| .__/ \___/|___/\__|
+|_|     |_|        |_|
+```
 
-**Open-source AI content curation pipeline** — Scout, translate, and publish articles from any domain automatically.
+[![CI](https://github.com/densul/pipepost/actions/workflows/ci.yml/badge.svg)](https://github.com/densul/pipepost/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-green.svg)](LICENSE)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and search engines, translates them to your target language using AI, and publishes to your blog or CMS. Works for any niche — tech, business, health, lifestyle, and more.
+# PipePost
+
+**Open-source AI content curation pipeline** -- scout, translate, and publish articles from any domain automatically.
+
+PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and search engines, translates them to your target language using AI, and publishes to your blog or CMS. Works for any niche -- tech, business, health, lifestyle, and more.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Architecture](#architecture)
+- [Use Cases](#use-cases)
+- [Sources](#sources)
+- [Destinations](#destinations)
+- [Steps](#steps)
+- [Configuration](#configuration)
+- [Adding a Custom Source](#adding-a-custom-source)
+- [Adding a Custom Destination](#adding-a-custom-destination)
+- [Supported LLM Models](#supported-llm-models)
+- [Docker](#docker)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
@@ -66,26 +100,41 @@ my_flow = Flow(
 
 ## Use Cases
 
-### Tech & Programming
+### Cooking & Food
 ```yaml
 sources:
-  - name: tech-news
+  - name: food-news
+    type: reddit
+    subreddits: [cooking, recipes, AskCulinary]
+  - name: food-search
     type: search
     queries:
-      - "latest AI research papers"
-      - "golang best practices 2026"
-      - "python async programming"
+      - "new restaurant trends 2026"
+      - "seasonal recipes spring"
 ```
 
-### Business & Startups
+### Travel & Adventure
 ```yaml
 sources:
-  - name: business-news
+  - name: travel-news
     type: search
     queries:
-      - "startup funding news"
-      - "business strategy trends"
-      - "fintech innovations"
+      - "best travel destinations 2026"
+      - "budget travel tips Europe"
+      - "digital nomad guides"
+```
+
+### Finance & Investing
+```yaml
+sources:
+  - name: finance-news
+    type: reddit
+    subreddits: [personalfinance, investing]
+  - name: finance-search
+    type: search
+    queries:
+      - "stock market analysis today"
+      - "personal finance strategies"
 ```
 
 ### Health & Science
@@ -99,15 +148,27 @@ sources:
       - "mental health studies"
 ```
 
-### Lifestyle & Productivity
+### Tech & Programming
 ```yaml
 sources:
-  - name: lifestyle
+  - name: tech-news
     type: search
     queries:
-      - "productivity tips"
-      - "remote work trends"
-      - "personal development"
+      - "latest AI research papers"
+      - "open source projects trending"
+```
+
+### Sports & Fitness
+```yaml
+sources:
+  - name: sports-news
+    type: reddit
+    subreddits: [sports, fitness, running]
+  - name: sports-search
+    type: search
+    queries:
+      - "sports highlights this week"
+      - "fitness training programs"
 ```
 
 ## Sources
@@ -249,10 +310,16 @@ mypy --strict pipepost/
 pytest tests/
 ```
 
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to get started.
+
+In short: fork, branch, make your changes, run `ruff check`, `mypy --strict`, and `pytest`, then open a PR.
+
 ## License
 
-[AGPL-3.0](LICENSE) — Free to use, modify, and self-host. If you offer PipePost as a hosted service, you must open-source your modifications.
+[AGPL-3.0](LICENSE) -- Free to use, modify, and self-host. If you offer PipePost as a hosted service, you must open-source your modifications.
 
-## Author
+---
 
-Denis Sultanov — [@DenSul](https://github.com/DenSul)
+Built by [Denis Sultanov](https://github.com/DenSul)

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from pipepost.core.registry import register_source
+from pipepost.exceptions import SourceError
 from pipepost.sources.base import Source
 
 
@@ -15,13 +16,6 @@ if TYPE_CHECKING:
     from pipepost.core.context import Candidate
 
 logger = logging.getLogger(__name__)
-
-_DEFAULT_SUBREDDITS = [
-    "programming",
-    "golang",
-    "python",
-    "devops",
-]
 
 
 class RedditSource(Source):
@@ -35,11 +29,16 @@ class RedditSource(Source):
         subreddits: list[str] | None = None,
         min_score: int = 100,
     ) -> None:
-        self.subreddits = subreddits or list(_DEFAULT_SUBREDDITS)
+        self.subreddits: list[str] = subreddits or []
         self.min_score = min_score
 
     async def fetch_candidates(self, limit: int = 10) -> list[Candidate]:
         """Fetch top posts from configured subreddits."""
+        if not self.subreddits:
+            raise SourceError(
+                "RedditSource requires 'subreddits' in config. "
+                "Example: subreddits: ['cooking', 'travel', 'science']"
+            )
         from pipepost.core.context import Candidate
 
         candidates: list[Candidate] = []
@@ -75,7 +74,7 @@ class RedditSource(Source):
                                 },
                             ),
                         )
-                except Exception as exc:
+                except httpx.HTTPError as exc:
                     logger.warning("Failed to fetch r/%s: %s", sub, exc)
 
         candidates.sort(key=lambda c: c.score, reverse=True)

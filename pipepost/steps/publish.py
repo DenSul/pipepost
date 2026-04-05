@@ -45,8 +45,12 @@ class PublishStep(Step):
                 logger.info("Published to %s: %s", self.destination_name, result.slug)
             else:
                 ctx.add_error(f"Publish failed: {result.error}")
+        except PublishError:
+            raise
         except Exception as exc:
+            error_msg = f"Publish to '{self.destination_name}' failed: {exc}"
             ctx.published = PublishResult(success=False, error=str(exc))
-            raise PublishError(f"Publish to '{self.destination_name}' failed: {exc}") from exc
+            ctx.add_error(error_msg)
+            logger.error(error_msg)
 
         return ctx

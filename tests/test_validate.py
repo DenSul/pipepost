@@ -112,3 +112,46 @@ class TestValidateStepExecute:
         )
         result = await step.execute(ctx)
         assert len(result.errors) >= 3
+
+    @pytest.mark.asyncio
+    async def test_zero_original_content_no_ratio_error(self, validate_step):
+        """When original content is empty, ratio check should not divide by zero."""
+        ctx = FlowContext()
+        ctx.translated = TranslatedArticle(
+            title="T",
+            title_translated="П",
+            content="",  # zero-length original
+            content_translated="y" * 500,
+            source_url="https://x.com",
+        )
+        result = await validate_step.execute(ctx)
+        # Should not crash; ratio check is guarded by original_len > 0
+        assert not any("ratio" in e.lower() for e in result.errors)
+
+    @pytest.mark.asyncio
+    async def test_exact_min_length_passes(self):
+        step = ValidateStep(min_content_len=100, min_ratio=0.1)
+        ctx = FlowContext()
+        ctx.translated = TranslatedArticle(
+            title="T",
+            title_translated="П",
+            content="x" * 1000,
+            content_translated="y" * 100,  # exactly min_content_len
+            source_url="https://x.com",
+        )
+        result = await step.execute(ctx)
+        assert not any("short" in e.lower() for e in result.errors)
+
+    @pytest.mark.asyncio
+    async def test_custom_thresholds(self):
+        step = ValidateStep(min_content_len=50, min_ratio=0.1)
+        ctx = FlowContext()
+        ctx.translated = TranslatedArticle(
+            title="T",
+            title_translated="П",
+            content="x" * 1000,
+            content_translated="y" * 100,
+            source_url="https://x.com",
+        )
+        result = await step.execute(ctx)
+        assert not result.has_errors

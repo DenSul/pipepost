@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from pipepost.exceptions import SourceError
 from pipepost.sources.base import Source
 
 
@@ -38,8 +39,11 @@ class SearchSource(Source):
 
         from pipepost.core.context import Candidate
 
+        if not self.queries:
+            raise SourceError("SearchSource requires at least one query")
+
         candidates: list[Candidate] = []
-        per_query = max(1, limit // len(self.queries)) if self.queries else limit
+        per_query = max(1, limit // len(self.queries))
 
         with DDGS() as ddgs:
             for query in self.queries:
@@ -93,7 +97,11 @@ class SearchSource(Source):
     @classmethod
     def from_config(cls, config: dict[str, object]) -> SearchSource:
         """Create SearchSource from YAML config dict."""
+        raw_queries = config.get("queries")
+        queries: list[str] = (
+            [str(q) for q in raw_queries] if isinstance(raw_queries, list) else []
+        )
         return cls(
             name=str(config.get("name", "search")),
-            queries=config.get("queries") or [],  # type: ignore[arg-type]
+            queries=queries,
         )

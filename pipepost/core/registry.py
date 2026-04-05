@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
+    from pipepost.core.flow import Flow
     from pipepost.core.step import Step
     from pipepost.destinations.base import Destination
     from pipepost.sources.base import Source
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 _sources: dict[str, Source] = {}
 _destinations: dict[str, Destination] = {}
 _steps: dict[str, type[Step]] = {}
-_flows: dict[str, object] = {}
+_flows: dict[str, Flow] = {}
 
 
 def register_source(name: str, source: Source) -> None:
@@ -36,7 +37,7 @@ def register_step(name: str, step_cls: type[Step]) -> None:
     _steps[name] = step_cls
 
 
-def register_flow(name: str, flow: object) -> None:
+def register_flow(name: str, flow: Flow) -> None:
     """Register a pipeline flow by name."""
     _flows[name] = flow
 
@@ -57,7 +58,7 @@ def get_destination(name: str) -> Destination:
     return _destinations[name]
 
 
-def get_flow(name: str) -> object:
+def get_flow(name: str) -> Flow:
     """Get a registered flow by name."""
     if name not in _flows:
         msg = f"Flow '{name}' not registered. Available: {list(_flows)}"

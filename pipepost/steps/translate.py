@@ -121,7 +121,7 @@ class TranslateStep(Step):
             f"Translate the following article from English to {lang}.\n\n"
             "RULES:\n"
             "- Full paragraph-by-paragraph translation (NOT a summary)\n"
-            "- Keep all code blocks, URLs, and technical terms unchanged\n"
+            "- Keep all URLs, proper nouns, and domain-specific terminology unchanged\n"
             "- Keep markdown formatting\n"
             "- Translation must be at least 80% of original length\n"
             "- Output format: use ===SECTION=== markers\n\n"

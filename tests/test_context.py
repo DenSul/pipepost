@@ -127,3 +127,57 @@ class TestFlowContext:
         ctx = FlowContext(existing_urls={"https://a.com", "https://b.com"})
         assert "https://a.com" in ctx.existing_urls
         assert "https://c.com" not in ctx.existing_urls
+
+    def test_metadata_default_factory(self):
+        ctx1 = FlowContext()
+        ctx2 = FlowContext()
+        ctx1.metadata["key"] = "val"
+        assert "key" not in ctx2.metadata
+
+    def test_source_name_default(self):
+        ctx = FlowContext()
+        assert ctx.source_name == ""
+
+    def test_source_name_custom(self):
+        ctx = FlowContext(source_name="reddit")
+        assert ctx.source_name == "reddit"
+
+    def test_target_lang_custom(self):
+        ctx = FlowContext(target_lang="es")
+        assert ctx.target_lang == "es"
+
+    def test_candidates_isolation(self):
+        ctx1 = FlowContext()
+        ctx2 = FlowContext()
+        ctx1.candidates.append(Candidate(url="u", title="t"))
+        assert len(ctx2.candidates) == 0
+
+    def test_errors_isolation(self):
+        ctx1 = FlowContext()
+        ctx2 = FlowContext()
+        ctx1.add_error("oops")
+        assert not ctx2.has_errors
+
+
+class TestTranslatedArticleMetadata:
+    def test_metadata_isolation(self):
+        a = TranslatedArticle(
+            title="a", title_translated="b",
+            content="c", content_translated="d",
+            source_url="u",
+        )
+        b = TranslatedArticle(
+            title="x", title_translated="y",
+            content="z", content_translated="w",
+            source_url="u2",
+        )
+        a.metadata["key"] = "val"
+        assert "key" not in b.metadata
+
+
+class TestArticleMetadata:
+    def test_metadata_isolation(self):
+        a = Article(url="u1", title="t1", content="c1")
+        b = Article(url="u2", title="t2", content="c2")
+        a.metadata["key"] = "val"
+        assert "key" not in b.metadata

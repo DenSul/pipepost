@@ -8,13 +8,21 @@ sources:
     type: hackernews
     min_score: 100
 
-  # Reddit top posts from specific subreddits
-  - name: reddit-tech
+  # Reddit — subreddits must be specified (no hardcoded defaults)
+  - name: reddit-cooking
     type: reddit
     subreddits:
-      - programming
-      - golang
-      - python
+      - cooking
+      - recipes
+      - AskCulinary
+    min_score: 100
+
+  - name: reddit-finance
+    type: reddit
+    subreddits:
+      - personalfinance
+      - investing
+      - economics
     min_score: 200
 
   # RSS/Atom feed
@@ -23,19 +31,26 @@ sources:
     url: https://example.com/feed.xml
     max_items: 10
 
-  # DuckDuckGo search — tech niche
-  - name: tech-search
+  # DuckDuckGo search — cooking niche
+  - name: cooking-search
     type: search
     queries:
-      - "latest AI research papers"
-      - "golang best practices 2026"
+      - "best seasonal recipes 2026"
+      - "cooking techniques masterclass"
 
-  # DuckDuckGo search — business niche
-  - name: business-search
+  # DuckDuckGo search — travel niche
+  - name: travel-search
     type: search
     queries:
-      - "startup funding news"
-      - "business strategy trends"
+      - "hidden travel destinations Europe"
+      - "budget travel tips"
+
+  # DuckDuckGo search — finance niche
+  - name: finance-search
+    type: search
+    queries:
+      - "stock market analysis"
+      - "personal finance strategies"
 
   # DuckDuckGo search — health niche
   - name: health-search
@@ -44,12 +59,12 @@ sources:
       - "health research breakthroughs"
       - "nutrition science news"
 
-  # DuckDuckGo search — lifestyle niche
-  - name: lifestyle-search
+  # DuckDuckGo search — tech niche
+  - name: tech-search
     type: search
     queries:
-      - "productivity tips"
-      - "remote work trends"
+      - "latest AI research papers"
+      - "open source projects trending"
 
 # Publish destination
 destination:

@@ -55,23 +55,24 @@ class TestTranslateStepExecute:
         assert "python" in ctx.translated.tags
 
     @pytest.mark.asyncio
-    async def test_llm_failure_adds_error(self, translate_step, ctx_with_article):
+    async def test_llm_failure_raises_translate_error(self, translate_step, ctx_with_article):
+        from pipepost.exceptions import TranslateError
+
         with patch("litellm.acompletion", new_callable=AsyncMock) as mock_acomp:
             mock_acomp.side_effect = RuntimeError("API down")
-            ctx = await translate_step.execute(ctx_with_article)
+            with pytest.raises(TranslateError, match="LLM call failed"):
+                await translate_step.execute(ctx_with_article)
 
-        assert ctx.has_errors
-        assert any("LLM call failed" in e for e in ctx.errors)
-        assert ctx.translated is None
+        assert ctx_with_article.translated is None
 
     @pytest.mark.asyncio
-    async def test_bad_output_parse_adds_error(self, translate_step, ctx_with_article):
+    async def test_bad_output_parse_raises_translate_error(self, translate_step, ctx_with_article):
+        from pipepost.exceptions import TranslateError
+
         with patch("litellm.acompletion", new_callable=AsyncMock) as mock_acomp:
             mock_acomp.return_value = _make_llm_response("Garbage output with no markers")
-            ctx = await translate_step.execute(ctx_with_article)
-
-        assert ctx.has_errors
-        assert any("parse" in e.lower() for e in ctx.errors)
+            with pytest.raises(TranslateError, match="parse"):
+                await translate_step.execute(ctx_with_article)
 
     @pytest.mark.asyncio
     async def test_no_article_adds_error(self, translate_step):
@@ -79,6 +80,44 @@ class TestTranslateStepExecute:
         result = await translate_step.execute(ctx)
         assert result.has_errors
         assert "No article" in result.errors[0]
+
+
+    @pytest.mark.asyncio
+    async def test_retries_on_first_llm_failure(self, translate_step, ctx_with_article):
+        """LLM is retried once on failure before raising."""
+        with patch("litellm.acompletion", new_callable=AsyncMock) as mock_acomp:
+            mock_acomp.side_effect = [RuntimeError("transient"), _make_llm_response(LLM_GOOD_OUTPUT)]
+            ctx = await translate_step.execute(ctx_with_article)
+
+        assert ctx.translated is not None
+        assert mock_acomp.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_cover_image_propagated(self, translate_step):
+        """Cover image from article is propagated to translated article."""
+        ctx = FlowContext(source_name="test")
+        ctx.selected = Article(
+            url="https://example.com/art",
+            title="Title",
+            content="Content here. " * 50,
+            cover_image="https://example.com/img.jpg",
+        )
+        with patch("litellm.acompletion", new_callable=AsyncMock) as mock_acomp:
+            mock_acomp.return_value = _make_llm_response(LLM_GOOD_OUTPUT)
+            ctx = await translate_step.execute(ctx)
+
+        assert ctx.translated is not None
+        assert ctx.translated.cover_image == "https://example.com/img.jpg"
+
+    @pytest.mark.asyncio
+    async def test_source_name_propagated(self, translate_step, ctx_with_article):
+        """source_name from context is propagated to translated article."""
+        with patch("litellm.acompletion", new_callable=AsyncMock) as mock_acomp:
+            mock_acomp.return_value = _make_llm_response(LLM_GOOD_OUTPUT)
+            ctx = await translate_step.execute(ctx_with_article)
+
+        assert ctx.translated is not None
+        assert ctx.translated.source_name == "hackernews"
 
 
 class TestTranslateStepShouldSkip:
@@ -114,8 +153,8 @@ class TestParseOutput:
         raw = "===TITLE_RU===\nМой заголовок\n===CONTENT_RU===\nМой контент\n===TAGS===\npython, testing\n"
         result = translate_step._parse_output(raw)
         assert result is not None
-        assert result["title_ru"] == "Мой заголовок"
-        assert result["content_ru"] == "Мой контент"
+        assert result["title_translated"] == "Мой заголовок"
+        assert result["content_translated"] == "Мой контент"
         assert "python" in result["tags"]
         assert "testing" in result["tags"]
 
@@ -123,8 +162,8 @@ class TestParseOutput:
         raw = "<think>Let me analyze...</think>\n===TITLE_RU===\nЗаголовок\n===CONTENT_RU===\nСодержание\n===TAGS===\ntech\n"
         result = translate_step._parse_output(raw)
         assert result is not None
-        assert result["title_ru"] == "Заголовок"
-        assert result["content_ru"] == "Содержание"
+        assert result["title_translated"] == "Заголовок"
+        assert result["content_translated"] == "Содержание"
 
     def test_parse_missing_content_returns_none(self, translate_step):
         bad = "===TITLE_RU===\nSome title\n===TAGS===\ntech\n"
@@ -137,10 +176,39 @@ class TestParseOutput:
         assert result is not None
         assert result["tags"] == ["ai", "python", "devops"]
 
-    def test_parse_no_tags_section_defaults_to_tech(self, translate_step):
-        """When TAGS section is missing entirely, default is 'tech'."""
+    def test_parse_no_tags_section_defaults_to_empty(self, translate_step):
+        """When TAGS section is missing entirely, tags default to empty list."""
         raw = "===TITLE_RU===\nT\n===CONTENT_RU===\nC\n"
         result = translate_step._parse_output(raw)
         assert result is not None
-        # sections.get("TAGS", "tech") returns "tech" when TAGS missing
-        assert result["tags"] == ["tech"]
+        # sections.get("TAGS", "") returns "" -> split/filter yields []
+        assert result["tags"] == []
+
+    def test_parse_empty_tags_section(self, translate_step):
+        """When TAGS section is present but empty, tags are empty list."""
+        raw = "===TITLE_RU===\nT\n===CONTENT_RU===\nC\n===TAGS===\n\n"
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        assert result["tags"] == []
+
+    def test_parse_missing_title_returns_empty_string(self, translate_step):
+        """When TITLE_RU section is missing, title_translated is empty."""
+        raw = "===CONTENT_RU===\nSome content\n===TAGS===\npython\n"
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        assert result["title_translated"] == ""
+
+    def test_parse_multiline_content(self, translate_step):
+        """Content with multiple paragraphs is preserved."""
+        raw = "===TITLE_RU===\nT\n===CONTENT_RU===\nLine one\n\nLine two\n\nLine three\n===TAGS===\ntest\n"
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        assert "Line one" in result["content_translated"]
+        assert "Line three" in result["content_translated"]
+
+    def test_parse_tags_whitespace_handling(self, translate_step):
+        """Tags with extra whitespace are trimmed and lowercased."""
+        raw = "===TITLE_RU===\nT\n===CONTENT_RU===\nC\n===TAGS===\n  Python , TESTING ,  AI  \n"
+        result = translate_step._parse_output(raw)
+        assert result is not None
+        assert result["tags"] == ["python", "testing", "ai"]

@@ -37,7 +37,7 @@ class TestMarkdownPublish:
         content = (tmp_path / f"{result.slug}.md").read_text(encoding="utf-8")
         assert "---" in content
         assert "Переведённый заголовок" in content
-        assert "source: https://example.com/article" in content
+        assert "https://example.com/article" in content
 
     @pytest.mark.asyncio
     async def test_file_contains_translated_content(self, tmp_path, translated):

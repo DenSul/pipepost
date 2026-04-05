@@ -100,12 +100,14 @@ class TestPublishStepExecute:
         step = PublishStep(destination_name="mock")
         ctx = FlowContext()
         ctx.translated = good_translated
+
         result = await step.execute(ctx)
 
-        assert result.has_errors
+        # Non-PublishError exceptions are caught and recorded
         assert result.published is not None
         assert result.published.success is False
         assert "connection refused" in result.published.error
+        assert result.has_errors
 
     @pytest.mark.asyncio
     async def test_no_article_adds_error(self, monkeypatch):

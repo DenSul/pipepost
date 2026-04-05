@@ -1,11 +1,44 @@
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.pyo
+*.egg
+*.egg-info/
+dist/
+build/
+sdist/
+wheels/
+*.whl
+
+# Virtual environments
 .venv/
 venv/
-dist/
-*.egg-info/
+env/
+
+# Tools
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets & config
 .env
+.env.*
+!.env.example
+
+# Logs & output
 *.log
+output/

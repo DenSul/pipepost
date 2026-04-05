@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
-import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING
 
 import httpx
+from defusedxml.ElementTree import ParseError
+from defusedxml.ElementTree import fromstring as parse_xml
 
+from pipepost.exceptions import SourceError
 from pipepost.sources.base import Source
 
 
@@ -31,12 +33,15 @@ class RSSSource(Source):
 
     async def fetch_candidates(self, limit: int = 10) -> list[Candidate]:
         """Fetch and parse the RSS/Atom feed."""
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-            resp = await client.get(
-                self.feed_url,
-                headers={"User-Agent": _USER_AGENT},
-            )
-            resp.raise_for_status()
+        try:
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+                resp = await client.get(
+                    self.feed_url,
+                    headers={"User-Agent": _USER_AGENT},
+                )
+                resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise SourceError(f"Failed to fetch RSS feed {self.feed_url}: {exc}") from exc
 
         return self._parse_feed(resp.text, limit)
 
@@ -46,8 +51,8 @@ class RSSSource(Source):
 
         candidates: list[Candidate] = []
         try:
-            root = ET.fromstring(xml_text)
-        except ET.ParseError as exc:
+            root = parse_xml(xml_text)
+        except ParseError as exc:
             logger.error("Failed to parse feed %s: %s", self.feed_url, exc)
             return []
 
@@ -74,10 +79,9 @@ class RSSSource(Source):
         entries = root.findall(".//atom:entry", ns)
         for entry in entries[: min(limit, self.max_items)]:
             title = (entry.findtext("atom:title", namespaces=ns) or "").strip()
-            link_el = entry.find(
-                "atom:link[@rel='alternate']",
-                ns,
-            ) or entry.find("atom:link", ns)
+            link_el = entry.find("atom:link[@rel='alternate']", ns)
+            if link_el is None:
+                link_el = entry.find("atom:link", ns)
             link = link_el.get("href", "") if link_el is not None else ""
             summary = (entry.findtext("atom:summary", namespaces=ns) or "").strip()
             if link:

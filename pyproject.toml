@@ -6,12 +6,31 @@ readme = "README.md"
 license = {text = "AGPL-3.0"}
 requires-python = ">=3.11"
 authors = [{name = "Denis Sultanov", email = "denis@denishub.dev"}]
-keywords = ["ai", "content", "curation", "translation", "pipeline"]
+keywords = [
+    "ai",
+    "content",
+    "curation",
+    "translation",
+    "pipeline",
+    "automation",
+    "rss",
+    "llm",
+    "publishing",
+    "news",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Text Processing :: Linguistic",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed",
 ]
 
 dependencies = [
@@ -21,6 +40,7 @@ dependencies = [
     "pyyaml>=6.0",
     "beautifulsoup4>=4.12",
     "litellm>=1.30",
+    "defusedxml>=0.7",
     "duckduckgo-search>=6.0",
 ]
 
@@ -34,7 +54,15 @@ dev = [
     "pytest-cov",
     "types-PyYAML",
     "types-beautifulsoup4",
+    "types-defusedxml",
 ]
+
+[project.urls]
+Homepage = "https://github.com/densul/pipepost"
+Repository = "https://github.com/densul/pipepost"
+Issues = "https://github.com/densul/pipepost/issues"
+Documentation = "https://github.com/densul/pipepost#readme"
+Changelog = "https://github.com/densul/pipepost/releases"
 
 [project.scripts]
 pipepost = "pipepost.cli:main"

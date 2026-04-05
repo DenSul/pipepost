@@ -141,6 +141,53 @@ class TestFlowStepSkipping:
         assert ctx.metadata["order"] == ["ok", "cond"]
 
 
+class TestFlowOnStepComplete:
+    @pytest.mark.asyncio
+    async def test_sync_callback_called(self):
+        calls: list[tuple[str, float]] = []
+
+        def on_complete(step_name: str, ctx: FlowContext, elapsed: float) -> None:
+            calls.append((step_name, elapsed))
+
+        steps = [PassStep(name="a", marker="a"), PassStep(name="b", marker="b")]
+        flow = Flow(name="cb-test", steps=steps, on_step_complete=on_complete)
+        await flow.run(FlowContext())
+        assert len(calls) == 2
+        assert calls[0][0] == "a"
+        assert calls[1][0] == "b"
+        assert all(elapsed >= 0 for _, elapsed in calls)
+
+    @pytest.mark.asyncio
+    async def test_async_callback_called(self):
+        calls: list[str] = []
+
+        async def on_complete(step_name: str, ctx: FlowContext, elapsed: float) -> None:
+            calls.append(step_name)
+
+        steps = [PassStep(name="x", marker="x")]
+        flow = Flow(name="async-cb", steps=steps, on_step_complete=on_complete)
+        await flow.run(FlowContext())
+        assert calls == ["x"]
+
+    @pytest.mark.asyncio
+    async def test_callback_called_on_error(self):
+        calls: list[str] = []
+
+        def on_complete(step_name: str, ctx: FlowContext, elapsed: float) -> None:
+            calls.append(step_name)
+
+        steps = [FailStep(name="boom")]
+        flow = Flow(name="err-cb", steps=steps, on_error="stop", on_step_complete=on_complete)
+        await flow.run(FlowContext())
+        assert calls == ["boom"]
+
+    @pytest.mark.asyncio
+    async def test_no_callback_is_noop(self):
+        flow = Flow(name="no-cb", steps=[PassStep(name="ok", marker="ok")])
+        ctx = await flow.run(FlowContext())
+        assert ctx.metadata["order"] == ["ok"]
+
+
 class TestFlowRepr:
     def test_repr(self):
         flow = Flow(name="my-flow", steps=[PassStep(name="a"), PassStep(name="b")])

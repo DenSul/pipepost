@@ -2,6 +2,17 @@
 
 from __future__ import annotations
 
+import sys
+import types
+from unittest.mock import AsyncMock
+
+# Ensure litellm is importable even when the real package is broken
+# (e.g., Windows long-path issue). Tests mock acompletion anyway.
+if "litellm" not in sys.modules:
+    _mock_litellm = types.ModuleType("litellm")
+    _mock_litellm.acompletion = AsyncMock()  # type: ignore[attr-defined]
+    sys.modules["litellm"] = _mock_litellm
+
 import pytest
 
 from pipepost.core.context import (

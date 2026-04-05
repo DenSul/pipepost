@@ -32,18 +32,35 @@ class MarkdownDestination(Destination):
         slug = self._slugify(article.title_translated or article.title)
         filepath = self.output_dir / f"{slug}.md"
 
-        frontmatter = (
-            f'---\ntitle: "{article.title_translated}"\n'
-            f'title_en: "{article.title}"\n'
-            f"source: {article.source_url}\n"
-            f"tags: {article.tags}\n---\n\n"
-        )
+        frontmatter = self._build_frontmatter(article)
         content = frontmatter + article.content_translated
 
         filepath.write_text(content, encoding="utf-8")
         logger.info("Saved to %s", filepath)
 
         return PublishResult(success=True, slug=slug, url=str(filepath))
+
+    @staticmethod
+    def _escape_yaml_string(text: str) -> str:
+        """Escape a string for safe inclusion in YAML frontmatter."""
+        # Replace backslashes, double quotes, and newlines
+        escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+        escaped = escaped.replace("\n", "\\n").replace("\r", "")
+        return f'"{escaped}"'
+
+    @classmethod
+    def _build_frontmatter(cls, article: TranslatedArticle) -> str:
+        """Build YAML frontmatter with properly escaped values."""
+        title = cls._escape_yaml_string(article.title_translated)
+        title_en = cls._escape_yaml_string(article.title)
+        source = cls._escape_yaml_string(article.source_url)
+        tags_str = ", ".join(f'"{t}"' for t in article.tags) if article.tags else ""
+        return (
+            f"---\ntitle: {title}\n"
+            f"title_en: {title_en}\n"
+            f"source: {source}\n"
+            f"tags: [{tags_str}]\n---\n\n"
+        )
 
     @staticmethod
     def _slugify(text: str) -> str:
