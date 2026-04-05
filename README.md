@@ -30,6 +30,7 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 - [Destinations](#destinations)
 - [Steps](#steps)
 - [Configuration](#configuration)
+- [Telegram Bot](#telegram-bot)
 - [Adding a Custom Source](#adding-a-custom-source)
 - [Adding a Custom Destination](#adding-a-custom-destination)
 - [Supported LLM Models](#supported-llm-models)
@@ -42,9 +43,14 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 
 - 📡 **Multiple Sources** — HackerNews, Reddit, RSS/Atom, DuckDuckGo search
 - 🌍 **AI Translation** — Full paragraph-by-paragraph translation via any LLM (DeepSeek, Claude, GPT, Qwen, etc.)
-- 📝 **Multiple Destinations** — Webhook (WordPress, Ghost, custom API), Markdown files
-- 🔄 **Composable Flows** — Chain steps: dedup → scout → fetch → translate → validate → publish
+- 📝 **Multiple Destinations** — Webhook, Markdown, Telegram channels
+- 🤖 **Telegram Bot** — Interactive curation: scout candidates, approve/reject via inline buttons
+- 🎯 **Smart Scoring** — LLM-based candidate ranking by relevance, originality, and engagement
+- ✍️ **Style Adaptation** — Adapt content for blog, Telegram, newsletter, or Twitter thread
+- 📢 **Fanout Publish** — Publish to multiple destinations simultaneously
+- 🔄 **Composable Flows** — Chain steps: dedup → scout → score → fetch → translate → adapt → publish
 - 💾 **Deduplication** — SQLite-backed persistence prevents re-publishing across runs
+- 📊 **Prometheus Metrics** — Pipeline runs, step durations, error counters (optional)
 - 🧩 **Plugin Architecture** — Add sources and destinations with a single file
 - ⚙️ **YAML Configuration** — Configure everything without code
 - 🐳 **Docker Ready** — `docker compose up` and go
@@ -68,6 +74,13 @@ pipepost flows
 # Run a pipeline flow
 pipepost run default --source hackernews --dest webhook --lang ru
 
+# Preview without publishing
+pipepost run default --source hackernews --dry-run
+
+# Run interactive Telegram bot
+export TELEGRAM_BOT_TOKEN=your-bot-token
+pipepost bot --source hackernews --lang ru
+
 # Check health
 pipepost health
 ```
@@ -75,20 +88,20 @@ pipepost health
 ## Architecture
 
 ```
-Source → Dedup → Scout → Fetch → Translate → Validate → Publish → Persist
-  │                                                                   │
-  HN, Reddit, RSS, Search                    Webhook, WordPress, Ghost, .md
+Source → Dedup → Scout → Score → Fetch → Translate → Adapt → Validate → Publish → Persist
+  │                                                                            │
+  HN, Reddit, RSS, Search                      Webhook, Markdown, Telegram, Fanout
 ```
 
-Every step is independent and composable. The default flow runs end-to-end: loads published URLs from SQLite, scouts candidates from a source, fetches content, translates via LLM, validates quality, publishes, and persists the URL to avoid duplicates.
+Every step is independent and composable. The default flow runs end-to-end: loads published URLs from SQLite, scouts candidates, fetches content, translates via LLM, validates quality, publishes, and persists the URL to avoid duplicates.
 
 Create custom flows by chaining steps:
 
 ```python
 from pipepost.core import Flow
 from pipepost.steps import (
-    DeduplicationStep, FetchStep, PostPublishStep,
-    PublishStep, ScoutStep, TranslateStep, ValidateStep,
+    AdaptStep, DeduplicationStep, FanoutPublishStep, FetchStep,
+    PostPublishStep, ScoutStep, ScoringStep, TranslateStep, ValidateStep,
 )
 from pipepost.storage import SQLiteStorage
 
@@ -99,10 +112,12 @@ my_flow = Flow(
     steps=[
         DeduplicationStep(storage=storage),
         ScoutStep(max_candidates=20),
+        ScoringStep(niche="tech", max_score_candidates=5),
         FetchStep(max_chars=15000),
         TranslateStep(model="deepseek/deepseek-chat", target_lang="ru"),
+        AdaptStep(style="telegram"),
         ValidateStep(min_content_len=500),
-        PublishStep(destination_name="webhook"),
+        FanoutPublishStep(destination_names=["webhook", "telegram", "markdown"]),
         PostPublishStep(storage=storage),
     ],
 )
@@ -196,6 +211,7 @@ sources:
 |-------------|-------------|
 | `webhook` | POST to any URL (WordPress REST API, Ghost, custom) |
 | `markdown` | Save as `.md` files with YAML frontmatter |
+| `telegram` | Post to Telegram channels/chats via Bot API |
 
 ## Steps
 
@@ -203,10 +219,13 @@ sources:
 |------|-------------|
 | `dedup` | Load published URLs from SQLite to prevent re-processing |
 | `scout` | Fetch candidates from a source (HN, Reddit, RSS, search) |
+| `score` | LLM-based candidate ranking by relevance, originality, engagement |
 | `fetch` | Download article, extract content as markdown, get og:image |
 | `translate` | Translate via LLM (LiteLLM — supports 100+ models) |
+| `adapt` | Adapt content style: blog, telegram, newsletter, or thread |
 | `validate` | Check translation quality (length, ratio, required fields) |
-| `publish` | Send to configured destination |
+| `publish` | Send to a single configured destination |
+| `fanout_publish` | Publish to multiple destinations concurrently |
 | `post_publish` | Persist published URL to SQLite for future deduplication |
 
 ## Configuration
@@ -282,6 +301,30 @@ class MyCMSDestination(Destination):
 register_destination("my-cms", MyCMSDestination())
 ```
 
+## Telegram Bot
+
+PipePost includes an interactive Telegram bot for human-in-the-loop content curation:
+
+```bash
+export TELEGRAM_BOT_TOKEN=your-bot-token
+pipepost bot --source hackernews --lang ru
+```
+
+**How it works:**
+1. Send `/scout` to the bot
+2. Bot fetches candidates and shows them with inline buttons
+3. Tap **Publish** — bot runs the full pipeline (fetch → translate → validate → publish)
+4. Tap **Skip** — bot moves to the next candidate
+
+**Telegram as a destination** (automated, no approval needed):
+
+```yaml
+destination:
+  type: telegram
+  bot_token: "your-bot-token"
+  chat_id: "@your_channel"
+```
+
 ## Supported LLM Models
 
 PipePost uses [LiteLLM](https://github.com/BerriAI/litellm) for translation, supporting 100+ models:
@@ -311,7 +354,7 @@ docker run -v ./pipepost.yaml:/app/config/pipepost.yaml pipepost run default
 git clone https://github.com/DenSul/pipepost
 cd pipepost
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev,metrics]"
 
 # Lint
 ruff check pipepost/
