@@ -16,6 +16,16 @@
 
 **Open-source AI content curation pipeline** -- scout, translate, and publish articles from any domain automatically.
 
+```
+  HackerNews ─┐                                              ┌─ Blog (webhook)
+  Reddit     ─┤   ┌───────┐   ┌──────────┐   ┌──────────┐   ├─ Telegram channel
+  RSS/Atom   ─┼──>│ Scout ├──>│Translate ├──>│ Publish  ├──>├─ Markdown files
+  DuckDuckGo ─┤   │ + Score│   │ + Adapt  │   │ + Fanout │   ├─ OpenClaw (23+ channels)
+  Custom     ─┘   └───────┘   └──────────┘   └──────────┘   └─ Custom destination
+                    AI ranks      AI translates    Publishes to
+                    best articles  & adapts style   multiple targets
+```
+
 PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and search engines, translates them to your target language using AI, and publishes to your blog or CMS. Works for any niche -- tech, business, health, lifestyle, and more.
 
 ---
@@ -76,7 +86,7 @@ pipepost flows
 # Run a pipeline flow
 pipepost run default --source hackernews --dest webhook --lang ru
 
-# Preview without publishing
+# Preview without publishing (dry run)
 pipepost run default --source hackernews --dry-run
 
 # Batch mode — process multiple articles
@@ -93,12 +103,51 @@ pipepost bot --source hackernews --lang ru
 pipepost health
 ```
 
-## Architecture
+**Example batch output:**
 
 ```
-Source → Dedup → Scout → Score → Fetch → Translate → Adapt → Validate → Publish → Persist
-  │                                                                            │
-  HN, Reddit, RSS, Search              Webhook, Markdown, Telegram, OpenClaw, Fanout
+$ pipepost run default --source hackernews --batch -n 3 --lang ru
+
+Batch: processed 3 article(s)
+  [1] Восемь лет желания, три месяца работы с ИИ | 2026-04-05-vosem-let-zhelaniya | ok
+  [2] Финская сауна усиливает иммунный ответ    | 2026-04-05-finskaya-sauna       | ok
+  [3] Утечка email-адресов в BrowserStack        | 2026-04-05-utechka-email        | ok
+```
+
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Sources
+        HN[HackerNews]
+        RD[Reddit]
+        RSS[RSS/Atom]
+        DDG[DuckDuckGo]
+    end
+
+    subgraph Pipeline
+        Dedup[Dedup<br><i>SQLite</i>]
+        Scout[Scout<br><i>fetch candidates</i>]
+        Score[Score<br><i>LLM ranking</i>]
+        Fetch[Fetch<br><i>download article</i>]
+        Translate[Translate<br><i>LLM translation</i>]
+        Adapt[Adapt<br><i>style: blog/tg/thread</i>]
+        Validate[Validate<br><i>quality check</i>]
+    end
+
+    subgraph Destinations
+        WH[Webhook / CMS]
+        MD[Markdown]
+        TG[Telegram]
+        OC[OpenClaw<br><i>23+ channels</i>]
+    end
+
+    HN & RD & RSS & DDG --> Dedup --> Scout --> Score --> Fetch --> Translate --> Adapt --> Validate
+    Validate --> WH & MD & TG & OC
+
+    style Pipeline fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
+    style Sources fill:#0f3460,stroke:#16213e,color:#e0e0e0
+    style Destinations fill:#533483,stroke:#16213e,color:#e0e0e0
 ```
 
 Every step is independent and composable. The default flow runs end-to-end: loads published URLs from SQLite, scouts candidates, fetches content, translates via LLM, validates quality, publishes, and persists the URL to avoid duplicates.
@@ -267,7 +316,7 @@ translate:
 
 ### Config-Driven Flows
 
-Define your entire pipeline in YAML — no Python needed:
+Define your entire pipeline in YAML -- no Python needed:
 
 ```yaml
 flow:
@@ -339,6 +388,28 @@ export TELEGRAM_BOT_TOKEN=your-bot-token
 pipepost bot --source hackernews --lang ru
 ```
 
+```mermaid
+sequenceDiagram
+    participant U as You (Telegram)
+    participant B as PipePost Bot
+    participant S as Source (HN/Reddit)
+    participant L as LLM (DeepSeek/GPT)
+    participant D as Destination
+
+    U->>B: /scout
+    B->>S: fetch_candidates(limit=5)
+    S-->>B: 5 articles
+    B->>U: Article 1: "..." [Publish] [Skip]
+    B->>U: Article 2: "..." [Publish] [Skip]
+    U->>B: tap [Publish] on Article 1
+    B->>B: fetch full content
+    B->>L: translate to Russian
+    L-->>B: translated article
+    B->>D: publish
+    D-->>B: slug: my-article
+    B->>U: Published: my-article
+```
+
 **How it works:**
 1. Send `/scout` to the bot
 2. Bot fetches candidates and shows them with inline buttons
@@ -356,9 +427,24 @@ destination:
 
 ## OpenClaw Integration
 
-PipePost integrates with [OpenClaw](https://github.com/openclaw/openclaw) — a self-hosted AI assistant platform with 23+ messaging channels (WhatsApp, Slack, Discord, Signal, etc.).
+PipePost integrates with [OpenClaw](https://github.com/openclaw/openclaw) -- a self-hosted AI assistant platform with 23+ messaging channels.
 
-**As a destination** — publish through OpenClaw to all connected channels:
+```mermaid
+graph LR
+    PP[PipePost] -->|publish| OC[OpenClaw Gateway]
+    OC --> TG[Telegram]
+    OC --> SL[Slack]
+    OC --> DC[Discord]
+    OC --> WA[WhatsApp]
+    OC --> SG[Signal]
+    OC --> MS[Teams]
+    OC --> ETC[...20+ more]
+
+    style PP fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
+    style OC fill:#533483,stroke:#16213e,color:#e0e0e0
+```
+
+**As a destination** -- publish through OpenClaw to all connected channels:
 
 ```yaml
 destination:
