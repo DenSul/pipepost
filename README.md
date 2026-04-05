@@ -71,7 +71,8 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 - ✍️ **Style Adaptation** — Adapt content for blog, Telegram, newsletter, or Twitter thread
 - 📢 **Fanout Publish** — Publish to multiple destinations simultaneously
 - 📦 **Batch Mode** — Process multiple articles in one run (`--batch -n 5`)
-- 🔄 **Composable Flows** — Chain steps: dedup → scout → score → fetch → translate → adapt → publish
+- 🔄 **Composable Flows** — Chain steps: dedup → scout → filter → score → fetch → translate → adapt → publish
+- 🔍 **Smart Filtering** — Filter candidates by keywords, domain blacklist, and title length
 - 💾 **Deduplication** — Async SQLite persistence (aiosqlite) prevents re-publishing across runs
 - 📊 **Prometheus Metrics** — Pipeline runs, step durations, error counters (optional)
 - ⚙️ **Config-Driven Flows** — Define entire pipelines in YAML without writing Python
@@ -150,6 +151,7 @@ graph LR
     subgraph Pipeline
         Dedup[Dedup<br><i>SQLite</i>]
         Scout[Scout<br><i>fetch candidates</i>]
+        Filter[Filter<br><i>keyword/domain</i>]
         Score[Score<br><i>LLM ranking</i>]
         Fetch[Fetch<br><i>download article</i>]
         Translate[Translate<br><i>LLM translation</i>]
@@ -165,7 +167,7 @@ graph LR
         OC[OpenClaw<br><i>23+ channels</i>]
     end
 
-    HN & RD & RSS & DDG --> Dedup --> Scout --> Score --> Fetch --> Translate --> Adapt --> Images --> Validate
+    HN & RD & RSS & DDG --> Dedup --> Scout --> Filter --> Score --> Fetch --> Translate --> Adapt --> Images --> Validate
     Validate --> WH & MD & TG & OC
 
     style Pipeline fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
@@ -201,7 +203,7 @@ flow:
 pipepost run --config pipepost.yaml --source hackernews
 ```
 
-Add or remove steps from the `flow.steps` list to customize your pipeline. Available steps: `dedup`, `scout`, `score`, `fetch`, `translate`, `adapt`, `images`, `validate`, `publish`, `fanout_publish`, `post_publish`.
+Add or remove steps from the `flow.steps` list to customize your pipeline. Available steps: `dedup`, `scout`, `filter`, `score`, `fetch`, `translate`, `adapt`, `images`, `validate`, `publish`, `fanout_publish`, `post_publish`.
 
 <details>
 <summary>Advanced: custom flows in Python</summary>
@@ -246,6 +248,17 @@ sources:
     queries:
       - "new restaurant trends 2026"
       - "seasonal recipes spring"
+```
+
+### Cooking with Filter
+```yaml
+# Combine sources with filtering
+flow:
+  steps: [dedup, scout, filter, fetch, translate, publish, post_publish]
+  filter:
+    keywords_include: ["recipe", "cooking", "restaurant"]
+    keywords_exclude: ["sponsored", "advertisement", "affiliate"]
+    domain_blacklist: ["buzzfeed.com"]
 ```
 
 ### Travel & Adventure
@@ -330,6 +343,7 @@ sources:
 |------|-------------|
 | `dedup` | Load published URLs from SQLite to prevent re-processing |
 | `scout` | Fetch candidates from a source (HN, Reddit, RSS, search) |
+| `filter` | Filter candidates by keywords, domain blacklist, title length |
 | `score` | LLM-based candidate ranking by relevance, originality, engagement |
 | `fetch` | Download article, extract content as markdown, get og:image |
 | `translate` | Translate via LLM (LiteLLM — supports 100+ models) |
@@ -375,8 +389,13 @@ translate:
   target_lang: ru
 
 flow:
-  steps: [dedup, scout, score, fetch, translate, validate, publish, post_publish]
+  steps: [dedup, scout, filter, score, fetch, translate, validate, publish, post_publish]
   on_error: stop
+  filter:
+    keywords_include: ["AI", "open source", "startup"]  # at least one must match
+    keywords_exclude: ["sponsored", "advertisement"]     # none must match
+    domain_blacklist: ["medium.com", "substack.com"]     # blocked domains
+    min_title_length: 10
   score:
     model: gpt-4o-mini  # optional: cheaper model for scoring
     niche: tech

@@ -121,6 +121,15 @@ class AdaptConfig(BaseModel):
     style: str = "blog"
 
 
+class FilterConfig(BaseModel):
+    """Configuration for the filter step."""
+
+    keywords_include: list[str] = Field(default_factory=list)
+    keywords_exclude: list[str] = Field(default_factory=list)
+    domain_blacklist: list[str] = Field(default_factory=list)
+    min_title_length: int = 0
+
+
 class PublishFlowConfig(BaseModel):
     """Configuration for publish/fanout steps within a flow."""
 
@@ -151,6 +160,7 @@ class FlowConfig(BaseModel):
     on_error: str = "stop"
     score: ScoreConfig = Field(default_factory=ScoreConfig)
     adapt: AdaptConfig = Field(default_factory=AdaptConfig)
+    filter: FilterConfig = Field(default_factory=FilterConfig)
     publish: PublishFlowConfig = Field(default_factory=PublishFlowConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
 

@@ -59,6 +59,12 @@ class StepBuildContext:
     # Scout
     max_candidates: int = 30
 
+    # Filter
+    filter_keywords_include: list[str] = field(default_factory=list)
+    filter_keywords_exclude: list[str] = field(default_factory=list)
+    filter_domain_blacklist: list[str] = field(default_factory=list)
+    filter_min_title_length: int = 0
+
     # Images
     images_output_dir: str = "./output/images"
 

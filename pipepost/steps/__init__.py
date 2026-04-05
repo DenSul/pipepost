@@ -4,6 +4,7 @@ from pipepost.steps.adapt import AdaptStep
 from pipepost.steps.dedup import DeduplicationStep, PostPublishStep
 from pipepost.steps.fanout import FanoutPublishStep
 from pipepost.steps.fetch import FetchStep
+from pipepost.steps.filter import FilterStep
 from pipepost.steps.images import ImageStep
 from pipepost.steps.publish import PublishStep
 from pipepost.steps.score import ScoringStep
@@ -17,6 +18,7 @@ __all__ = [
     "DeduplicationStep",
     "FanoutPublishStep",
     "FetchStep",
+    "FilterStep",
     "ImageStep",
     "PostPublishStep",
     "PublishStep",
