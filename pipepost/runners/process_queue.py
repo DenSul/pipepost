@@ -12,6 +12,7 @@ import litellm
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
+
 logger = logging.getLogger(__name__)
 
 API_BASE_URL = "http://localhost:8000/api"

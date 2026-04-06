@@ -11,6 +11,7 @@ from pipepost.core.registry import register_source
 from pipepost.exceptions import SourceError
 from pipepost.sources.base import Source
 
+
 if TYPE_CHECKING:
     from pipepost.core.context import Candidate
 

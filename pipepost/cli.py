@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 import click
 
+
 try:
     from dotenv import load_dotenv
     load_dotenv(override=True)

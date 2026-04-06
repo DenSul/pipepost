@@ -195,7 +195,8 @@ class TestBatchSkipsExistingUrls:
 
         storage = SQLiteStorage(db_path)
         for i in range(1, 4):
-            await storage.mark_published(f"https://example.com/article-{i}", "test-source", f"slug-{i}")
+            url = f"https://example.com/article-{i}"
+            await storage.mark_published(url, "test-source", f"slug-{i}")
         await storage.close()
 
         with (

@@ -12,6 +12,7 @@ from typing import Any
 import httpx
 import litellm
 
+
 logger = logging.getLogger(__name__)
 
 API_BASE_URL = "http://localhost:8000/api"
@@ -235,10 +236,13 @@ async def _run_async() -> None:
         lesson_number = topic_idx + 1
         lesson_data.setdefault("lessonNumber", lesson_number)
         lesson_data.setdefault("topic", next_topic)
-        lesson_data.setdefault(
-            "difficulty",
-            "beginner" if lesson_number <= 9 else ("intermediate" if lesson_number <= 16 else "advanced"),
-        )
+        if lesson_number <= 9:
+            default_diff = "beginner"
+        elif lesson_number <= 16:
+            default_diff = "intermediate"
+        else:
+            default_diff = "advanced"
+        lesson_data.setdefault("difficulty", default_diff)
 
         # 5. Publish
         try:
