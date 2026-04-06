@@ -33,13 +33,13 @@ class WebhookDestination(Destination):
 
         payload = {
             "title": article.title,
-            "title_translated": article.title_translated,
+            "titleRu": article.title_translated,
             "content": article.content,
-            "content_translated": article.content_translated,
-            "source_url": article.source_url,
-            "source_name": article.source_name,
+            "contentRu": article.content_translated,
+            "sourceUrl": article.source_url,
+            "sourceName": article.source_name,
             "tags": article.tags,
-            "cover_image": article.cover_image,
+            "coverImage": article.cover_image,
         }
 
         try:
