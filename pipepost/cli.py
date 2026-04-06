@@ -330,7 +330,11 @@ def cmd_bot(token: str, source: str, lang: str) -> None:
 RUNNERS: dict[str, str] = {
     "changelog-translate": "pipepost.runners.changelog_translate",
     "go-lesson": "pipepost.runners.go_lesson",
+    "process-queue": "pipepost.runners.process_queue",
     "til": "pipepost.runners.til",
+    "translate-hn": "pipepost.runners.translate_api",
+    "translate-trends": "pipepost.runners.translate_api",
+    "translate-anime": "pipepost.runners.translate_api",
 }
 
 
@@ -352,7 +356,17 @@ def cmd_runner(name: str) -> None:
         click.echo(f"Runner '{name}' has no run() function", err=True)
         sys.exit(1)
 
-    run_fn()
+    # Pass target arg for translate runners
+    target_map = {
+        "translate-hn": "hn",
+        "translate-trends": "trends",
+        "translate-anime": "anime",
+    }
+    target = target_map.get(name)
+    if target:
+        run_fn(target)
+    else:
+        run_fn()
 
 
 @main.command("runners")
