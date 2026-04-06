@@ -34,7 +34,9 @@ async def _get_pending(client: httpx.AsyncClient) -> list[dict]:
 
 
 async def _patch_item(
-    client: httpx.AsyncClient, item_id: str, body: dict,
+    client: httpx.AsyncClient,
+    item_id: str,
+    body: dict,
 ) -> None:
     """PATCH /api/import-queue/{id}."""
     try:
@@ -60,7 +62,10 @@ async def _publish_post(client: httpx.AsyncClient, payload: dict) -> dict:
 
 
 async def _log_cron(
-    client: httpx.AsyncClient, name: str, status: str, details: str,
+    client: httpx.AsyncClient,
+    name: str,
+    status: str,
+    details: str,
 ) -> None:
     """POST /api/cron-log."""
     try:
@@ -200,7 +205,8 @@ async def _process_one(
 
     if len(content) < 500:
         await _patch_item(
-            client, item_id,
+            client,
+            item_id,
             {"status": "error", "error": "Article too short"},
         )
         return False
@@ -216,7 +222,8 @@ async def _process_one(
 
     if not data:
         await _patch_item(
-            client, item_id,
+            client,
+            item_id,
             {"status": "error", "error": "Failed to parse LLM response"},
         )
         return False
@@ -283,6 +290,7 @@ def run() -> None:
     """Sync entry point for CLI integration."""
     try:
         from dotenv import load_dotenv
+
         load_dotenv(override=True)
     except ImportError:
         pass

@@ -56,7 +56,7 @@ async def _translate_hn_batch(
     api_key: str | None,
 ) -> dict[str, str]:
     """Translate HN titles batch. Returns {id: titleRu}."""
-    items = [f"{i+1}. id={s['id']}, title={s['title']}" for i, s in enumerate(stories)]
+    items = [f"{i + 1}. id={s['id']}, title={s['title']}" for i, s in enumerate(stories)]
     prompt = (
         "Translate these HackerNews story titles to Russian. "
         "Keep them concise and natural.\n\n"
@@ -73,11 +73,7 @@ async def _translate_hn_batch(
         )
         parsed = json.loads(_extract_json(resp.choices[0].message.content or ""))
         if isinstance(parsed, list):
-            return {
-                str(e["id"]): e["titleRu"]
-                for e in parsed
-                if e.get("id") and e.get("titleRu")
-            }
+            return {str(e["id"]): e["titleRu"] for e in parsed if e.get("id") and e.get("titleRu")}
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
         logger.warning("HN batch parse failed: %s", exc)
     except Exception as exc:
@@ -175,7 +171,7 @@ async def _translate_trends_batch(
 ) -> dict[str, dict]:
     """Translate trends batch. Returns {id: {descriptionRu, trendAnalysis}}."""
     items = [
-        f"{i+1}. id={t['id']}, repo={t['repoName']}, "
+        f"{i + 1}. id={t['id']}, repo={t['repoName']}, "
         f"desc={t.get('description', 'N/A')}, starsToday={t.get('starsToday', 0)}"
         for i, t in enumerate(trends)
     ]
@@ -183,7 +179,7 @@ async def _translate_trends_batch(
         "Translate these GitHub repo descriptions to Russian (2-3 sentences each) "
         "and explain why each is trending (1 sentence).\n\n"
         + "\n".join(items)
-        + '\n\nReply with a JSON array:\n'
+        + "\n\nReply with a JSON array:\n"
         '[{"id": "...", "descriptionRu": "...", "trendAnalysis": "..."}, ...]'
     )
     try:
@@ -249,7 +245,9 @@ async def translate_trends() -> int:
 
     async with httpx.AsyncClient() as client:
         resp = await client.get(
-            f"{API_BASE_URL}/github-trends", params={"limit": 25}, timeout=30,
+            f"{API_BASE_URL}/github-trends",
+            params={"limit": 25},
+            timeout=30,
         )
         resp.raise_for_status()
         trends = resp.json().get("data", [])
@@ -273,11 +271,13 @@ async def translate_trends() -> int:
                 if not item:
                     item = await _translate_trends_single(t, model, api_base, api_key)
                 if item:
-                    updates.append({
-                        "id": t["id"],
-                        "descriptionRu": item.get("descriptionRu", ""),
-                        "trendAnalysis": item.get("trendAnalysis", ""),
-                    })
+                    updates.append(
+                        {
+                            "id": t["id"],
+                            "descriptionRu": item.get("descriptionRu", ""),
+                            "trendAnalysis": item.get("trendAnalysis", ""),
+                        }
+                    )
 
         if updates:
             patch = await client.patch(
@@ -311,15 +311,14 @@ async def _translate_anime_batch(
 ) -> dict[str, dict]:
     """Translate anime batch. Returns {id: {titleRu, synopsisRu}}."""
     items = [
-        f"{i+1}. id={a['id']}, title={a['title']}, "
-        f"synopsis={(a.get('synopsis') or '')[:500]}"
+        f"{i + 1}. id={a['id']}, title={a['title']}, synopsis={(a.get('synopsis') or '')[:500]}"
         for i, a in enumerate(anime_list)
     ]
     prompt = (
         "Translate these anime titles and synopses to Russian.\n"
         "titleRu: creative Russian translation. synopsisRu: 2-4 sentence summary.\n\n"
         + "\n".join(items)
-        + '\n\nReply with a JSON array:\n'
+        + "\n\nReply with a JSON array:\n"
         '[{"id": "...", "titleRu": "...", "synopsisRu": "..."}, ...]'
     )
     try:
@@ -383,7 +382,9 @@ async def translate_anime() -> int:
 
     async with httpx.AsyncClient() as client:
         resp = await client.get(
-            f"{API_BASE_URL}/releases/anime", params={"limit": 25}, timeout=30,
+            f"{API_BASE_URL}/releases/anime",
+            params={"limit": 25},
+            timeout=30,
         )
         resp.raise_for_status()
         anime_list = resp.json().get("data", [])
@@ -407,11 +408,13 @@ async def translate_anime() -> int:
                 if not item:
                     item = await _translate_anime_single(a, model, api_base, api_key)
                 if item:
-                    updates.append({
-                        "id": a["id"],
-                        "titleRu": item.get("titleRu", ""),
-                        "synopsisRu": item.get("synopsisRu", ""),
-                    })
+                    updates.append(
+                        {
+                            "id": a["id"],
+                            "titleRu": item.get("titleRu", ""),
+                            "synopsisRu": item.get("synopsisRu", ""),
+                        }
+                    )
 
         if updates:
             patch = await client.patch(
@@ -447,6 +450,7 @@ def run(target: str = "hn") -> None:
     """Sync entry point for CLI integration."""
     try:
         from dotenv import load_dotenv
+
         load_dotenv(override=True)
     except ImportError:
         pass

@@ -120,9 +120,7 @@ def _parse_lesson_output(raw: str) -> dict[str, Any] | None:
     return None
 
 
-async def _log_cron(
-    client: httpx.AsyncClient, status: str, message: str
-) -> None:
+async def _log_cron(client: httpx.AsyncClient, status: str, message: str) -> None:
     """Log a cron result to the API."""
     try:
         await client.post(
@@ -139,9 +137,7 @@ async def _log_cron(
 
 def _build_prompt(next_topic: str, existing_titles: list[str]) -> str:
     existing_text = (
-        "\n".join(f"- {t}" for t in existing_titles)
-        if existing_titles
-        else "(none yet)"
+        "\n".join(f"- {t}" for t in existing_titles) if existing_titles else "(none yet)"
     )
 
     return (
@@ -255,9 +251,7 @@ async def _run_async() -> None:
             pub_result = r.json()
             lesson_id = pub_result.get("id", "ok")
             logger.info("Published Go lesson: %s (id: %s)", next_topic, lesson_id)
-            await _log_cron(
-                client, "success", f"Published '{next_topic}' (id: {lesson_id})"
-            )
+            await _log_cron(client, "success", f"Published '{next_topic}' (id: {lesson_id})")
             print(f"✅ go-lesson: published '{next_topic}'")
         except Exception as exc:
             logger.error("Publish failed: %s", exc)
@@ -271,6 +265,7 @@ def run() -> None:
     """Synchronous entry point for the Go Lesson runner."""
     try:
         from dotenv import load_dotenv
+
         load_dotenv(override=True)
     except ImportError:
         pass

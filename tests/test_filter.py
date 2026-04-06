@@ -28,9 +28,7 @@ class TestKeywordsInclude:
     @pytest.mark.asyncio
     async def test_passes_when_keyword_in_snippet(self) -> None:
         step = FilterStep(keywords_include=["python"])
-        ctx = FlowContext(
-            candidates=[_candidate(snippet="A guide to python programming")]
-        )
+        ctx = FlowContext(candidates=[_candidate(snippet="A guide to python programming")])
         ctx = await step.execute(ctx)
         assert len(ctx.candidates) == 1
 
@@ -76,36 +74,28 @@ class TestDomainBlacklist:
     @pytest.mark.asyncio
     async def test_blocks_exact_domain(self) -> None:
         step = FilterStep(domain_blacklist=["reddit.com"])
-        ctx = FlowContext(
-            candidates=[_candidate(url="https://reddit.com/r/python/post")]
-        )
+        ctx = FlowContext(candidates=[_candidate(url="https://reddit.com/r/python/post")])
         ctx = await step.execute(ctx)
         assert len(ctx.candidates) == 0
 
     @pytest.mark.asyncio
     async def test_blocks_subdomain(self) -> None:
         step = FilterStep(domain_blacklist=["reddit.com"])
-        ctx = FlowContext(
-            candidates=[_candidate(url="https://old.reddit.com/r/python/post")]
-        )
+        ctx = FlowContext(candidates=[_candidate(url="https://old.reddit.com/r/python/post")])
         ctx = await step.execute(ctx)
         assert len(ctx.candidates) == 0
 
     @pytest.mark.asyncio
     async def test_passes_non_blocked_domain(self) -> None:
         step = FilterStep(domain_blacklist=["reddit.com"])
-        ctx = FlowContext(
-            candidates=[_candidate(url="https://example.com/article")]
-        )
+        ctx = FlowContext(candidates=[_candidate(url="https://example.com/article")])
         ctx = await step.execute(ctx)
         assert len(ctx.candidates) == 1
 
     @pytest.mark.asyncio
     async def test_case_insensitive(self) -> None:
         step = FilterStep(domain_blacklist=["Reddit.COM"])
-        ctx = FlowContext(
-            candidates=[_candidate(url="https://REDDIT.com/r/test")]
-        )
+        ctx = FlowContext(candidates=[_candidate(url="https://REDDIT.com/r/test")])
         ctx = await step.execute(ctx)
         assert len(ctx.candidates) == 0
 

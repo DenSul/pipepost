@@ -49,9 +49,7 @@ async def _fetch_untranslated(client: httpx.AsyncClient) -> list[dict]:
     ]
 
 
-async def _save_translation(
-    client: httpx.AsyncClient, changelog_id: str, body_ru: str
-) -> bool:
+async def _save_translation(client: httpx.AsyncClient, changelog_id: str, body_ru: str) -> bool:
     """PATCH Russian translation for a changelog entry."""
     try:
         resp = await client.patch(
@@ -195,9 +193,7 @@ async def _run_async() -> None:
                     translated += 1
                     logger.info("Translated: %s %s", cl["repo"], cl["version"])
 
-        await _log_cron(
-            client, "success", f"Translated {translated}/{len(changelogs)} changelogs"
-        )
+        await _log_cron(client, "success", f"Translated {translated}/{len(changelogs)} changelogs")
         logger.info("=== Changelog Translate runner finished ===")
         print(f"✅ changelog-translate: translated {translated}/{len(changelogs)} changelogs")
 
@@ -206,6 +202,7 @@ def run() -> None:
     """Sync entry point for CLI integration."""
     try:
         from dotenv import load_dotenv
+
         load_dotenv(override=True)
     except ImportError:
         pass
