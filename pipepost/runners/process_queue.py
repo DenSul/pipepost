@@ -6,10 +6,11 @@ import asyncio
 import logging
 import os
 import re
+from typing import Any
 
 import httpx
 import litellm
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from markdownify import markdownify
 
 
@@ -20,7 +21,7 @@ USER_AGENT = "Mozilla/5.0 (compatible; PipePost/1.0)"
 MAX_CONTENT_CHARS = 15_000
 
 
-async def _get_pending(client: httpx.AsyncClient) -> list[dict]:
+async def _get_pending(client: httpx.AsyncClient) -> list[dict[str, Any]]:
     """GET /api/import-queue?status=pending&limit=5."""
     resp = await client.get(
         f"{API_BASE_URL}/import-queue",
@@ -36,7 +37,7 @@ async def _get_pending(client: httpx.AsyncClient) -> list[dict]:
 async def _patch_item(
     client: httpx.AsyncClient,
     item_id: str,
-    body: dict,
+    body: dict[str, Any],
 ) -> None:
     """PATCH /api/import-queue/{id}."""
     try:
@@ -50,7 +51,7 @@ async def _patch_item(
         logger.warning("PATCH queue item %s failed: %s", item_id, exc)
 
 
-async def _publish_post(client: httpx.AsyncClient, payload: dict) -> dict:
+async def _publish_post(client: httpx.AsyncClient, payload: dict[str, Any]) -> dict[str, Any]:
     """POST /api/posts/auto-publish."""
     resp = await client.post(
         f"{API_BASE_URL}/posts/auto-publish",
@@ -58,7 +59,8 @@ async def _publish_post(client: httpx.AsyncClient, payload: dict) -> dict:
         timeout=60,
     )
     resp.raise_for_status()
-    return resp.json()
+    result: dict[str, Any] = resp.json()
+    return result
 
 
 async def _log_cron(
@@ -86,9 +88,11 @@ def _fetch_and_parse(html: str) -> tuple[str, str | None]:
     cover: str | None = None
     for attr in ("property", "name"):
         tag = soup.find("meta", attrs={attr: "og:image"})
-        if tag and tag.get("content"):
-            cover = tag["content"]
-            break
+        if isinstance(tag, Tag):
+            content_val = tag.get("content")
+            if isinstance(content_val, str):
+                cover = content_val
+                break
 
     # Remove nav/header/footer/aside noise
     for el in soup.find_all(["nav", "header", "footer", "aside", "script", "style"]):
@@ -116,7 +120,7 @@ async def _fetch_article(client: httpx.AsyncClient, url: str) -> tuple[str, str 
     return _fetch_and_parse(resp.text)
 
 
-def _parse_marker_response(raw: str, original_content: str) -> dict | None:
+def _parse_marker_response(raw: str, original_content: str) -> dict[str, Any] | None:
     """Parse ===SECTION=== marker-delimited LLM response."""
     raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL)
     parts = re.split(r"===([A-Z_]+)===", raw)
@@ -146,7 +150,7 @@ async def _translate(
     model: str,
     api_base: str | None,
     api_key: str | None,
-) -> dict | None:
+) -> dict[str, Any] | None:
     """Translate article content via LLM. Returns parsed dict or None."""
     content_len = len(content)
     min_translation = max(500, int(content_len * 0.8))
@@ -181,7 +185,7 @@ async def _translate(
 
 async def _process_one(
     client: httpx.AsyncClient,
-    item: dict,
+    item: dict[str, Any],
     model: str,
     api_base: str | None,
     api_key: str | None,
@@ -229,7 +233,7 @@ async def _process_one(
         return False
 
     # 3. Publish
-    payload = {
+    payload: dict[str, Any] = {
         "title": data["title"],
         "titleRu": data["titleRu"],
         "content": data["content"],

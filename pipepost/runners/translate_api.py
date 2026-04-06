@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+from typing import Any
 
 import httpx
 import litellm
@@ -50,7 +51,7 @@ async def _log_cron(client: httpx.AsyncClient, name: str, status: str, details: 
 
 
 async def _translate_hn_batch(
-    stories: list[dict],
+    stories: list[dict[str, Any]],
     model: str,
     api_base: str | None,
     api_key: str | None,
@@ -82,7 +83,7 @@ async def _translate_hn_batch(
 
 
 async def _translate_hn_single(
-    story: dict,
+    story: dict[str, Any],
     model: str,
     api_base: str | None,
     api_key: str | None,
@@ -102,7 +103,8 @@ async def _translate_hn_single(
             api_key=api_key,
         )
         data = json.loads(_extract_json(resp.choices[0].message.content or ""))
-        return data.get("titleRu")
+        result: str | None = data.get("titleRu")
+        return result
     except Exception as exc:
         logger.warning("HN single translate failed for %s: %s", story["id"], exc)
         return None
@@ -126,7 +128,7 @@ async def translate_hackernews() -> int:
             return 0
 
         logger.info("Found %d untranslated HN stories", len(untranslated))
-        translations: list[dict] = []
+        translations: list[dict[str, Any]] = []
 
         for i in range(0, len(untranslated), BATCH_SIZE):
             batch = untranslated[i : i + BATCH_SIZE]
@@ -164,11 +166,11 @@ async def translate_hackernews() -> int:
 
 
 async def _translate_trends_batch(
-    trends: list[dict],
+    trends: list[dict[str, Any]],
     model: str,
     api_base: str | None,
     api_key: str | None,
-) -> dict[str, dict]:
+) -> dict[str, dict[str, str]]:
     """Translate trends batch. Returns {id: {descriptionRu, trendAnalysis}}."""
     items = [
         f"{i + 1}. id={t['id']}, repo={t['repoName']}, "
@@ -208,11 +210,11 @@ async def _translate_trends_batch(
 
 
 async def _translate_trends_single(
-    trend: dict,
+    trend: dict[str, Any],
     model: str,
     api_base: str | None,
     api_key: str | None,
-) -> dict | None:
+) -> dict[str, str] | None:
     """Fallback: translate a single trend."""
     prompt = (
         "Translate this GitHub repo description to Russian (2-3 sentences) "
@@ -232,7 +234,7 @@ async def _translate_trends_single(
         )
         data = json.loads(_extract_json(resp.choices[0].message.content or ""))
         if data.get("descriptionRu"):
-            return data
+            return dict(data)
     except Exception as exc:
         logger.warning("Trends single translate failed for %s: %s", trend["repoName"], exc)
     return None
@@ -260,7 +262,7 @@ async def translate_trends() -> int:
             return 0
 
         logger.info("Found %d untranslated trends", len(untranslated))
-        updates: list[dict] = []
+        updates: list[dict[str, Any]] = []
 
         for i in range(0, len(untranslated), BATCH_SIZE):
             batch = untranslated[i : i + BATCH_SIZE]
@@ -304,11 +306,11 @@ async def translate_trends() -> int:
 
 
 async def _translate_anime_batch(
-    anime_list: list[dict],
+    anime_list: list[dict[str, Any]],
     model: str,
     api_base: str | None,
     api_key: str | None,
-) -> dict[str, dict]:
+) -> dict[str, dict[str, str]]:
     """Translate anime batch. Returns {id: {titleRu, synopsisRu}}."""
     items = [
         f"{i + 1}. id={a['id']}, title={a['title']}, synopsis={(a.get('synopsis') or '')[:500]}"
@@ -347,11 +349,11 @@ async def _translate_anime_batch(
 
 
 async def _translate_anime_single(
-    anime: dict,
+    anime: dict[str, Any],
     model: str,
     api_base: str | None,
     api_key: str | None,
-) -> dict | None:
+) -> dict[str, str] | None:
     """Fallback: translate a single anime."""
     synopsis = (anime.get("synopsis") or "")[:500]
     prompt = (
@@ -369,7 +371,7 @@ async def _translate_anime_single(
         )
         data = json.loads(_extract_json(resp.choices[0].message.content or ""))
         if data.get("synopsisRu"):
-            return data
+            return dict(data)
     except Exception as exc:
         logger.warning("Anime single translate failed for %s: %s", anime["title"], exc)
     return None
@@ -397,7 +399,7 @@ async def translate_anime() -> int:
             return 0
 
         logger.info("Found %d untranslated anime", len(untranslated))
-        updates: list[dict] = []
+        updates: list[dict[str, Any]] = []
 
         for i in range(0, len(untranslated), BATCH_SIZE):
             batch = untranslated[i : i + BATCH_SIZE]

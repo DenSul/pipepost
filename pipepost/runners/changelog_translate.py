@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+from typing import Any
 
 import httpx
 import litellm
@@ -25,7 +26,7 @@ def _extract_json(text: str) -> str:
     return m.group(1).strip() if m else text.strip()
 
 
-async def _fetch_untranslated(client: httpx.AsyncClient) -> list[dict]:
+async def _fetch_untranslated(client: httpx.AsyncClient) -> list[dict[str, Any]]:
     """Fetch changelogs without bodyRu."""
     resp = await client.get(
         f"{API_BASE_URL}/changelogs",
@@ -81,7 +82,7 @@ async def _log_cron(client: httpx.AsyncClient, status: str, message: str) -> Non
 
 
 async def _translate_batch(
-    changelogs: list[dict],
+    changelogs: list[dict[str, Any]],
     model: str,
     api_base: str | None,
     api_key: str | None,
@@ -129,7 +130,7 @@ async def _translate_batch(
 
 
 async def _translate_single(
-    changelog: dict,
+    changelog: dict[str, Any],
     model: str,
     api_base: str | None,
     api_key: str | None,

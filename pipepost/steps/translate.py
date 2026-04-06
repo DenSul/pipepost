@@ -133,7 +133,7 @@ class TranslateStep(Step):
             kwargs["api_base"] = self.api_base
         if self.api_key:
             kwargs["api_key"] = self.api_key
-        response = await litellm.acompletion(**kwargs)  # type: ignore[arg-type]
+        response = await litellm.acompletion(**kwargs)
         return str(response.choices[0].message.content or "")
 
     def _build_prompt(self, title: str, content: str) -> str:

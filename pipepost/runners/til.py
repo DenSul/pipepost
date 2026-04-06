@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import os
+from typing import Any
 
 import httpx
 import litellm
@@ -47,7 +48,7 @@ Respond with ONLY a valid JSON object (no markdown fences):
 """
 
 
-async def _fetch_existing_tils(client: httpx.AsyncClient, limit: int = 20) -> list[dict]:
+async def _fetch_existing_tils(client: httpx.AsyncClient, limit: int = 20) -> list[dict[str, Any]]:
     """Fetch existing TIL titles from the backend."""
     try:
         resp = await client.get(f"{_API_BASE}/tils", params={"limit": limit})
@@ -60,7 +61,7 @@ async def _fetch_existing_tils(client: httpx.AsyncClient, limit: int = 20) -> li
         return []
 
 
-async def _fetch_changelogs(client: httpx.AsyncClient, limit: int = 10) -> list[dict]:
+async def _fetch_changelogs(client: httpx.AsyncClient, limit: int = 10) -> list[dict[str, Any]]:
     """Fetch recent changelogs for inspiration."""
     try:
         resp = await client.get(f"{_API_BASE}/changelogs", params={"limit": limit})
@@ -73,7 +74,10 @@ async def _fetch_changelogs(client: httpx.AsyncClient, limit: int = 10) -> list[
         return []
 
 
-def _build_user_prompt(existing_tils: list[dict], changelogs: list[dict]) -> str:
+def _build_user_prompt(
+    existing_tils: list[dict[str, Any]],
+    changelogs: list[dict[str, Any]],
+) -> str:
     """Build the user prompt with context about existing TILs and changelogs."""
     parts: list[str] = []
 
@@ -102,9 +106,9 @@ def _build_user_prompt(existing_tils: list[dict], changelogs: list[dict]) -> str
 
 
 async def _generate_til(
-    existing_tils: list[dict],
-    changelogs: list[dict],
-) -> dict:
+    existing_tils: list[dict[str, Any]],
+    changelogs: list[dict[str, Any]],
+) -> dict[str, Any]:
     """Generate a TIL using LLM via litellm."""
     model = os.getenv("PIPEPOST_MODEL", "openai/deepseek-reasoner")
     api_base = os.getenv("OPENAI_API_BASE", "")
@@ -135,13 +139,14 @@ async def _generate_til(
         content = "\n".join(lines).strip()
 
     try:
-        return json.loads(content)
+        result: dict[str, Any] = json.loads(content)
+        return result
     except json.JSONDecodeError as exc:
         logger.error("LLM returned invalid JSON: %s", content[:500])
         raise ValueError(f"Failed to parse LLM response as JSON: {exc}") from exc
 
 
-async def _publish_til(client: httpx.AsyncClient, til_data: dict) -> dict:
+async def _publish_til(client: httpx.AsyncClient, til_data: dict[str, Any]) -> dict[str, Any]:
     """Publish the TIL to the backend."""
     required = ["title", "content", "titleRu", "contentRu"]
     missing = [f for f in required if not til_data.get(f)]
@@ -150,7 +155,8 @@ async def _publish_til(client: httpx.AsyncClient, til_data: dict) -> dict:
 
     resp = await client.post(f"{_API_BASE}/tils", json=til_data, timeout=30)
     resp.raise_for_status()
-    return resp.json()
+    result: dict[str, Any] = resp.json()
+    return result
 
 
 async def _log_cron(
