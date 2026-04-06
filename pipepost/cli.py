@@ -329,15 +329,7 @@ def cmd_bot(token: str, source: str, lang: str) -> None:
     asyncio.run(bot.start())
 
 
-RUNNERS: dict[str, str] = {
-    "changelog-translate": "pipepost.runners.changelog_translate",
-    "go-lesson": "pipepost.runners.go_lesson",
-    "process-queue": "pipepost.runners.process_queue",
-    "til": "pipepost.runners.til",
-    "translate-hn": "pipepost.runners.translate_api",
-    "translate-trends": "pipepost.runners.translate_api",
-    "translate-anime": "pipepost.runners.translate_api",
-}
+RUNNERS: dict[str, str] = {}
 
 
 @main.command("runner")
@@ -358,17 +350,7 @@ def cmd_runner(name: str) -> None:
         click.echo(f"Runner '{name}' has no run() function", err=True)
         sys.exit(1)
 
-    # Pass target arg for translate runners
-    target_map = {
-        "translate-hn": "hn",
-        "translate-trends": "trends",
-        "translate-anime": "anime",
-    }
-    target = target_map.get(name)
-    if target:
-        run_fn(target)
-    else:
-        run_fn()
+    run_fn()
 
 
 @main.command("runners")
@@ -380,22 +362,6 @@ def cmd_runners() -> None:
     click.echo("Available runners:")
     for name in RUNNERS:
         click.echo(f"  • {name}")
-
-
-@main.command("til")
-def cmd_til() -> None:
-    """Run the TIL (Today I Learned) generator."""
-    from pipepost.runners.til import run
-
-    run()
-
-
-@main.command("go-lesson")
-def cmd_go_lesson() -> None:
-    """Generate the next Go programming lesson."""
-    from pipepost.runners.go_lesson import run
-
-    run()
 
 
 @main.command("health")
