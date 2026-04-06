@@ -54,9 +54,9 @@ class TestWebhookPublish:
 
         body = json.loads(request.content)
         assert body["title"] == "Original Title"
-        assert body["title_translated"] == "Переведённый заголовок"
+        assert body["titleRu"] == "Переведённый заголовок"
         assert body["tags"] == ["python", "testing"]
-        assert body["cover_image"] == "https://example.com/cover.jpg"
+        assert body["coverImage"] == "https://example.com/cover.jpg"
 
     @pytest.mark.asyncio
     @respx.mock
@@ -122,7 +122,7 @@ class TestWebhookPublish:
         import json
 
         body = json.loads(route.calls[0].request.content)
-        assert body["cover_image"] is None
+        assert body["coverImage"] is None
 
     def test_default_headers(self):
         dest = WebhookDestination(url="https://x.com")
