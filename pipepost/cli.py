@@ -330,6 +330,7 @@ def cmd_bot(token: str, source: str, lang: str) -> None:
 RUNNERS: dict[str, str] = {
     "changelog-translate": "pipepost.runners.changelog_translate",
     "go-lesson": "pipepost.runners.go_lesson",
+    "til": "pipepost.runners.til",
 }
 
 
