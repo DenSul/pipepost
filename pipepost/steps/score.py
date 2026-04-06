@@ -30,10 +30,14 @@ class ScoringStep(Step):
         model: str | None = None,
         max_score_candidates: int = 5,
         niche: str = "general",
+        api_base: str | None = None,
+        api_key: str | None = None,
     ) -> None:
         self.model = model or os.getenv("PIPEPOST_MODEL", "deepseek/deepseek-chat")
         self.max_score_candidates = max_score_candidates
         self.niche = niche
+        self.api_base = api_base or os.getenv("OPENAI_API_BASE") or os.getenv("LITELLM_API_BASE")
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
 
     @classmethod
     def from_config(cls, build_ctx: StepBuildContext) -> ScoringStep:
@@ -109,12 +113,17 @@ class ScoringStep(Step):
         """Call LLM for scoring with tenacity retry and exponential backoff."""
         import litellm
 
-        response = await litellm.acompletion(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=2048,
-            temperature=0.2,
-        )
+        kwargs: dict[str, object] = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 2048,
+            "temperature": 0.2,
+        }
+        if self.api_base:
+            kwargs["api_base"] = self.api_base
+        if self.api_key:
+            kwargs["api_key"] = self.api_key
+        response = await litellm.acompletion(**kwargs)  # type: ignore[arg-type]
         return str(response.choices[0].message.content or "")
 
     def _build_scoring_prompt(self, candidates: list[Candidate]) -> str:

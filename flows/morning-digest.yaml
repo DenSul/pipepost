@@ -1,0 +1,25 @@
+# PipePost flow: Morning Digest → Telegram
+# Replaces: pipeline run morning-digest (ai-craft-pipeline)
+# Custom flow: collects data from AI Craft API, formats, sends to Telegram
+
+sources:
+  - name: digest-search
+    type: search
+    queries:
+      - "site:denishub.dev"
+
+translate:
+  model: openai/deepseek-reasoner
+  target_lang: ru
+
+destination:
+  type: telegram
+  bot_token: "${TELEGRAM_BOT_TOKEN}"
+  chat_id: "${TELEGRAM_CHAT_ID}"
+
+flow:
+  steps: [scout, adapt, publish]
+  adapt:
+    style: telegram
+  storage:
+    db_path: /root/.openclaw/workspace/pipepost/pipepost.db

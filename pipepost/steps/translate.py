@@ -33,11 +33,15 @@ class TranslateStep(Step):
         target_lang: str = "ru",
         max_tokens: int = 16384,
         min_ratio: float = 0.5,
+        api_base: str | None = None,
+        api_key: str | None = None,
     ) -> None:
         self.model = model or os.getenv("PIPEPOST_MODEL", "deepseek/deepseek-chat")
         self.target_lang = target_lang
         self.max_tokens = max_tokens
         self.min_ratio = min_ratio
+        self.api_base = api_base or os.getenv("OPENAI_API_BASE") or os.getenv("LITELLM_API_BASE")
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
 
     @classmethod
     def from_config(cls, build_ctx: StepBuildContext) -> TranslateStep:
@@ -119,12 +123,17 @@ class TranslateStep(Step):
         """Call LLM with tenacity retry and exponential backoff."""
         import litellm
 
-        response = await litellm.acompletion(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=self.max_tokens,
-            temperature=0.3,
-        )
+        kwargs: dict[str, object] = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": self.max_tokens,
+            "temperature": 0.3,
+        }
+        if self.api_base:
+            kwargs["api_base"] = self.api_base
+        if self.api_key:
+            kwargs["api_key"] = self.api_key
+        response = await litellm.acompletion(**kwargs)  # type: ignore[arg-type]
         return str(response.choices[0].message.content or "")
 
     def _build_prompt(self, title: str, content: str) -> str:

@@ -9,6 +9,12 @@ from typing import TYPE_CHECKING
 
 import click
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+except ImportError:
+    pass
+
 from pipepost.core.registry import (
     discover_all,
     get_flow,

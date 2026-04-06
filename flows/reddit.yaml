@@ -1,0 +1,38 @@
+# PipePost flow: Reddit → AI Craft Blog
+# Replaces: pipeline run reddit (ai-craft-pipeline)
+
+sources:
+  - name: reddit-dev
+    type: reddit
+    subreddits:
+      - programming
+      - rust
+      - golang
+      - webdev
+      - devops
+      - machinelearning
+    min_score: 200
+
+translate:
+  model: openai/deepseek-reasoner
+  target_lang: ru
+
+destination:
+  type: webhook
+  url: http://localhost:8000/api/posts/auto-publish
+  headers:
+    Content-Type: "application/json"
+
+flow:
+  steps: [dedup, scout, filter, score, fetch, translate, adapt, validate, publish, post_publish]
+  filter:
+    keywords_exclude: ["hiring", "resume", "salary", "interview"]
+    domain_blacklist: ["medium.com"]
+    min_title_length: 15
+  score:
+    niche: tech
+    max_score_candidates: 3
+  adapt:
+    style: blog
+  storage:
+    db_path: /root/.openclaw/workspace/pipepost/pipepost.db

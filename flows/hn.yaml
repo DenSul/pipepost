@@ -1,0 +1,30 @@
+# PipePost flow: HackerNews → AI Craft Blog
+# Replaces: pipeline run hn (ai-craft-pipeline)
+
+sources:
+  - name: hackernews
+    type: hackernews
+    min_score: 100
+
+translate:
+  model: openai/deepseek-reasoner
+  target_lang: ru
+
+destination:
+  type: webhook
+  url: http://localhost:8000/api/posts/auto-publish
+  headers:
+    Content-Type: "application/json"
+
+flow:
+  steps: [dedup, scout, filter, score, fetch, translate, adapt, validate, publish, post_publish]
+  filter:
+    keywords_exclude: ["hiring", "ask hn", "tell hn", "show hn jobs"]
+    min_title_length: 15
+  score:
+    niche: tech
+    max_score_candidates: 3
+  adapt:
+    style: blog
+  storage:
+    db_path: /root/.openclaw/workspace/pipepost/pipepost.db

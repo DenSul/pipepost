@@ -1,0 +1,35 @@
+# PipePost flow: Tool Review → AI Craft Blog
+# Replaces: pipeline run tool-review (ai-craft-pipeline)
+
+sources:
+  - name: tools-search
+    type: search
+    queries:
+      - "best developer tools 2026"
+      - "new open source tools for developers"
+      - "AI tools for software development"
+      - "developer productivity tools"
+
+translate:
+  model: openai/deepseek-reasoner
+  target_lang: ru
+
+destination:
+  type: webhook
+  url: http://localhost:8000/api/posts/auto-publish
+  headers:
+    Content-Type: "application/json"
+
+flow:
+  steps: [dedup, scout, filter, score, fetch, translate, adapt, validate, publish, post_publish]
+  filter:
+    keywords_exclude: ["sponsored", "advertisement", "affiliate"]
+    domain_blacklist: ["medium.com", "substack.com"]
+    min_title_length: 15
+  score:
+    niche: tech
+    max_score_candidates: 3
+  adapt:
+    style: blog
+  storage:
+    db_path: /root/.openclaw/workspace/pipepost/pipepost.db

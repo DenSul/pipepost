@@ -1,0 +1,24 @@
+# PipePost flow: Translate Anime descriptions
+# Replaces: pipeline translate anime (ai-craft-pipeline)
+
+sources:
+  - name: anime-search
+    type: search
+    queries:
+      - "new anime releases 2026"
+
+translate:
+  model: openai/deepseek-reasoner
+  target_lang: ru
+
+destination:
+  type: webhook
+  url: http://localhost:8000/api/releases/anime/bulk-translate
+  method: PATCH
+  headers:
+    Content-Type: "application/json"
+
+flow:
+  steps: [dedup, scout, translate, post_publish]
+  storage:
+    db_path: /root/.openclaw/workspace/pipepost/pipepost.db

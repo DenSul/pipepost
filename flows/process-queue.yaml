@@ -1,0 +1,26 @@
+# PipePost flow: Process import queue → translate & publish
+# Replaces: pipeline run process-queue (ai-craft-pipeline)
+# Note: This flow fetches pending items from AI Craft queue,
+# translates and publishes them.
+
+sources:
+  - name: queue-rss
+    type: rss
+    url: http://localhost:8000/api/import-queue/feed
+
+translate:
+  model: openai/deepseek-reasoner
+  target_lang: ru
+
+destination:
+  type: webhook
+  url: http://localhost:8000/api/posts/auto-publish
+  headers:
+    Content-Type: "application/json"
+
+flow:
+  steps: [dedup, scout, fetch, translate, adapt, validate, publish, post_publish]
+  adapt:
+    style: blog
+  storage:
+    db_path: /root/.openclaw/workspace/pipepost/pipepost.db

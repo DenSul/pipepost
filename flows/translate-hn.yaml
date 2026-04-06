@@ -1,0 +1,24 @@
+# PipePost flow: Translate HackerNews titles
+# Replaces: pipeline translate hn (ai-craft-pipeline)
+# Source: AI Craft API /widgets/hackernews → translate → PATCH back
+
+sources:
+  - name: hackernews
+    type: hackernews
+    min_score: 50
+
+translate:
+  model: openai/deepseek-reasoner
+  target_lang: ru
+
+destination:
+  type: webhook
+  url: http://localhost:8000/api/widgets/hackernews/translate
+  method: PATCH
+  headers:
+    Content-Type: "application/json"
+
+flow:
+  steps: [dedup, scout, translate, post_publish]
+  storage:
+    db_path: /root/.openclaw/workspace/pipepost/pipepost.db
