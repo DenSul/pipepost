@@ -1,0 +1,15 @@
+# PipePost flow: Changelog Translate
+# Standalone runner — translates changelogs from AI Craft API to Russian.
+# Usage: pipepost runner changelog-translate
+
+runner: changelog-translate
+schedule: "0 */4 * * *"
+
+api:
+  base_url: http://localhost:8000/api
+  fetch_limit: 50
+
+translate:
+  model: ${PIPEPOST_MODEL:-deepseek/deepseek-chat}
+  batch_size: 5
+  target_lang: ru

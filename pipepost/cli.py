@@ -327,6 +327,60 @@ def cmd_bot(token: str, source: str, lang: str) -> None:
     asyncio.run(bot.start())
 
 
+RUNNERS: dict[str, str] = {
+    "changelog-translate": "pipepost.runners.changelog_translate",
+    "go-lesson": "pipepost.runners.go_lesson",
+}
+
+
+@main.command("runner")
+@click.argument("name")
+def cmd_runner(name: str) -> None:
+    """Run a standalone runner by name."""
+    module_path = RUNNERS.get(name)
+    if not module_path:
+        available = ", ".join(RUNNERS) or "(none)"
+        click.echo(f"Unknown runner: {name}. Available: {available}", err=True)
+        sys.exit(1)
+
+    import importlib
+
+    mod = importlib.import_module(module_path)
+    run_fn = getattr(mod, "run", None)
+    if not callable(run_fn):
+        click.echo(f"Runner '{name}' has no run() function", err=True)
+        sys.exit(1)
+
+    run_fn()
+
+
+@main.command("runners")
+def cmd_runners() -> None:
+    """List available standalone runners."""
+    if not RUNNERS:
+        click.echo("No runners registered.")
+        return
+    click.echo("Available runners:")
+    for name in RUNNERS:
+        click.echo(f"  • {name}")
+
+
+@main.command("til")
+def cmd_til() -> None:
+    """Run the TIL (Today I Learned) generator."""
+    from pipepost.runners.til import run
+
+    run()
+
+
+@main.command("go-lesson")
+def cmd_go_lesson() -> None:
+    """Generate the next Go programming lesson."""
+    from pipepost.runners.go_lesson import run
+
+    run()
+
+
 @main.command("health")
 def cmd_health() -> None:
     """Check pipeline health."""

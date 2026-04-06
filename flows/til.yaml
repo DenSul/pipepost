@@ -1,0 +1,22 @@
+# PipePost flow: TIL (Today I Learned) generator
+# Standalone runner — generates and publishes TIL notes via LLM
+
+sources:
+  - name: aicraft_tils
+    type: aicraft_tils
+    api_base: http://localhost:8000/api
+
+translate:
+  model: openai/deepseek-reasoner
+  target_lang: ru
+
+destination:
+  type: webhook
+  url: http://localhost:8000/api/tils
+  headers:
+    Content-Type: "application/json"
+
+flow:
+  steps: [dedup, fetch, translate, validate, publish]
+  storage:
+    db_path: /root/.openclaw/workspace/pipepost/pipepost.db

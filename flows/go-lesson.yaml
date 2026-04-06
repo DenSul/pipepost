@@ -1,0 +1,15 @@
+# PipePost flow: Go Lesson generator
+# Standalone runner — main logic in pipepost/runners/go_lesson.py
+
+runner: go-lesson
+description: "Generate the next Go programming lesson and publish via API"
+
+api:
+  base_url: http://localhost:8000/api
+  lessons_endpoint: /go-lessons
+  cron_log_endpoint: /cron-log
+
+llm:
+  model_env: PIPEPOST_MODEL
+  api_base_env: OPENAI_API_BASE
+  api_key_env: OPENAI_API_KEY
