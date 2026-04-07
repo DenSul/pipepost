@@ -97,7 +97,7 @@ class RewriteStep(Step):
             from pipepost.core.context import TranslatedArticle
 
             article = ctx.selected
-            assert article is not None  # noqa: S101
+            assert article is not None
             ctx.translated = TranslatedArticle(
                 title=article.title,
                 title_translated=str(title_rewritten),
