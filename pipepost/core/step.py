@@ -46,6 +46,10 @@ class StepBuildContext:
     adapt_model: str = ""
     style: str = "blog"
 
+    # Rewrite
+    rewrite_model: str = ""
+    rewrite_creativity: float = 0.7
+
     # Validation
     min_content_len: int = 300
     min_ratio: float = 0.3

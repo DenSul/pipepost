@@ -10,7 +10,7 @@
 [![CI](https://github.com/densul/pipepost/actions/workflows/ci.yml/badge.svg)](https://github.com/densul/pipepost/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/pipepost.svg)](https://pypi.org/project/pipepost/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-396_passed-brightgreen.svg)](https://github.com/densul/pipepost)
+[![Tests](https://img.shields.io/badge/tests-455_passed-brightgreen.svg)](https://github.com/densul/pipepost)
 [![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](https://github.com/densul/pipepost)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-green.svg)](LICENSE)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
@@ -25,9 +25,9 @@
   SOURCES          SCOUT       TRANSLATE     PUBLISH         DESTINATIONS
  ----------       -------      ---------     -------        --------------
   HackerNews        |             |             |            Webhook / CMS
-  Reddit      ----> | Score  ---> | Adapt  ---> | Fanout --> Telegram
-  RSS/Atom          | Rank        | Style       | to N       Markdown
-  DuckDuckGo        |             |             |            OpenClaw (23+)
+  Reddit      ----> | Score  ---> | Rewrite --> | Fanout --> Telegram
+  RSS/Atom          | Rank        | Adapt       | to N       Markdown
+  DuckDuckGo        |             | Style       |            OpenClaw (23+)
   Custom            |             |             |            Custom
 ```
 
@@ -65,6 +65,7 @@ PipePost discovers articles from sources like HackerNews, Reddit, RSS feeds, and
 
 - 📡 **Multiple Sources** — HackerNews, Reddit, RSS/Atom, DuckDuckGo search
 - 🌍 **AI Translation** — Full paragraph-by-paragraph translation via any LLM (DeepSeek, Claude, GPT, Qwen, etc.)
+- 🔄 **Content Rewriting** — Deep AI-powered rewrite to make content 100% unique and undetectable by plagiarism checkers
 - 📝 **Multiple Destinations** — Webhook, Markdown, Telegram, OpenClaw (23+ channels)
 - 🤖 **Telegram Bot** — Interactive curation: scout candidates, approve/reject via inline buttons
 - 🎯 **Smart Scoring** — LLM-based candidate ranking by relevance, originality, and engagement
@@ -155,6 +156,7 @@ graph LR
         Score[Score<br><i>LLM ranking</i>]
         Fetch[Fetch<br><i>download article</i>]
         Translate[Translate<br><i>LLM translation</i>]
+        Rewrite[Rewrite<br><i>make unique</i>]
         Adapt[Adapt<br><i>style: blog/tg/thread</i>]
         Images[Images<br><i>download & rewrite</i>]
         Validate[Validate<br><i>quality check</i>]
@@ -167,7 +169,7 @@ graph LR
         OC[OpenClaw<br><i>23+ channels</i>]
     end
 
-    HN & RD & RSS & DDG --> Dedup --> Scout --> Filter --> Score --> Fetch --> Translate --> Adapt --> Images --> Validate
+    HN & RD & RSS & DDG --> Dedup --> Scout --> Filter --> Score --> Fetch --> Translate --> Rewrite --> Adapt --> Images --> Validate
     Validate --> WH & MD & TG & OC
 
     style Pipeline fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
@@ -187,12 +189,16 @@ translate:
   model: deepseek/deepseek-chat
   target_lang: ru
 
+rewrite:
+  model: deepseek/deepseek-chat  # optional: separate model for rewriting
+  creativity: 0.7                 # temperature (0.3–1.0)
+
 destination:
   type: markdown
   output_dir: ./output
 
 flow:
-  steps: [dedup, scout, score, fetch, translate, validate, publish, post_publish]
+  steps: [dedup, scout, score, fetch, translate, rewrite, validate, publish, post_publish]
   score:
     niche: tech
   storage:
@@ -203,7 +209,7 @@ flow:
 pipepost run --config pipepost.yaml --source hackernews
 ```
 
-Add or remove steps from the `flow.steps` list to customize your pipeline. Available steps: `dedup`, `scout`, `filter`, `score`, `fetch`, `translate`, `adapt`, `images`, `validate`, `publish`, `fanout_publish`, `post_publish`.
+Add or remove steps from the `flow.steps` list to customize your pipeline. Available steps: `dedup`, `scout`, `filter`, `score`, `fetch`, `translate`, `rewrite`, `adapt`, `images`, `validate`, `publish`, `fanout_publish`, `post_publish`.
 
 <details>
 <summary>Advanced: custom flows in Python</summary>
@@ -212,7 +218,7 @@ Add or remove steps from the `flow.steps` list to customize your pipeline. Avail
 from pipepost.core import Flow
 from pipepost.steps import (
     AdaptStep, DeduplicationStep, FanoutPublishStep, FetchStep,
-    PostPublishStep, ScoutStep, ScoringStep, TranslateStep, ValidateStep,
+    PostPublishStep, RewriteStep, ScoutStep, ScoringStep, TranslateStep, ValidateStep,
 )
 from pipepost.storage import SQLiteStorage
 
@@ -226,6 +232,7 @@ my_flow = Flow(
         ScoringStep(niche="tech", max_score_candidates=5),
         FetchStep(max_chars=15000),
         TranslateStep(model="deepseek/deepseek-chat", target_lang="ru"),
+        RewriteStep(creativity=0.7),
         AdaptStep(style="telegram"),
         ValidateStep(min_content_len=500),
         FanoutPublishStep(destination_names=["webhook", "telegram", "markdown"]),
@@ -347,6 +354,7 @@ sources:
 | `score` | LLM-based candidate ranking by relevance, originality, engagement |
 | `fetch` | Download article, extract content as markdown, get og:image |
 | `translate` | Translate via LLM (LiteLLM — supports 100+ models) |
+| `rewrite` | Deep AI rewrite — makes content unique and undetectable by plagiarism checkers |
 | `adapt` | Adapt content style: blog, telegram, newsletter, or thread |
 | `validate` | Check translation quality (length, ratio, required fields) |
 | `publish` | Send to a single configured destination |
@@ -389,7 +397,7 @@ translate:
   target_lang: ru
 
 flow:
-  steps: [dedup, scout, filter, score, fetch, translate, validate, publish, post_publish]
+  steps: [dedup, scout, filter, score, fetch, translate, rewrite, validate, publish, post_publish]
   on_error: stop
   filter:
     keywords_include: ["AI", "open source", "startup"]  # at least one must match
