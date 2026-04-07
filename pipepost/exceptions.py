@@ -19,6 +19,10 @@ class TranslateError(PipePostError):
     """Error during LLM translation (API failures, parse errors)."""
 
 
+class RewriteError(PipePostError):
+    """Error during LLM content rewriting (API failures, parse errors)."""
+
+
 class PublishError(PipePostError):
     """Error during article publishing (destination failures)."""
 

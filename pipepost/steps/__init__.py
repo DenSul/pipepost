@@ -7,6 +7,7 @@ from pipepost.steps.fetch import FetchStep
 from pipepost.steps.filter import FilterStep
 from pipepost.steps.images import ImageStep
 from pipepost.steps.publish import PublishStep
+from pipepost.steps.rewrite import RewriteStep
 from pipepost.steps.score import ScoringStep
 from pipepost.steps.scout import ScoutStep
 from pipepost.steps.translate import TranslateStep
@@ -22,6 +23,7 @@ __all__ = [
     "ImageStep",
     "PostPublishStep",
     "PublishStep",
+    "RewriteStep",
     "ScoringStep",
     "ScoutStep",
     "TranslateStep",

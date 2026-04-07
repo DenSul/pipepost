@@ -121,6 +121,14 @@ class AdaptConfig(BaseModel):
     style: str = "blog"
 
 
+class RewriteConfig(BaseModel):
+    """Configuration for the rewrite step."""
+
+    model: str = ""
+    creativity: float = 0.7
+    max_tokens: int = 16384
+
+
 class FilterConfig(BaseModel):
     """Configuration for the filter step."""
 
@@ -174,6 +182,7 @@ class PipePostConfig(BaseModel):
     fetch: FetchConfig = Field(default_factory=FetchConfig)
     validate_: ValidateConfig = Field(default_factory=ValidateConfig, alias="validate")
     flow: FlowConfig = Field(default_factory=FlowConfig)
+    rewrite: RewriteConfig = Field(default_factory=RewriteConfig)
     verbose: bool = False
 
     model_config = {"populate_by_name": True}

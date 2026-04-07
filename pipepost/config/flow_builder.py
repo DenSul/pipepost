@@ -184,6 +184,8 @@ def _build_step(
         max_score_candidates=config.flow.score.max_score_candidates,
         adapt_model=config.flow.adapt.model,
         style=config.flow.adapt.style,
+        rewrite_model=config.rewrite.model,
+        rewrite_creativity=config.rewrite.creativity,
         min_content_len=config.validate_.min_content_len,
         min_ratio=config.validate_.min_ratio,
         filter_keywords_include=config.flow.filter.keywords_include,
