@@ -50,6 +50,14 @@ class StepBuildContext:
     rewrite_model: str = ""
     rewrite_creativity: float = 0.7
 
+    # Transform (fused step)
+    transform_model: str = ""
+    transform_translate: bool = True
+    transform_rewrite: bool = False
+    transform_adapt: bool = False
+    transform_style: str = "blog"
+    transform_creativity: float = 0.5
+
     # Validation
     min_content_len: int = 300
     min_ratio: float = 0.3

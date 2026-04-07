@@ -10,6 +10,7 @@ from pipepost.steps.publish import PublishStep
 from pipepost.steps.rewrite import RewriteStep
 from pipepost.steps.score import ScoringStep
 from pipepost.steps.scout import ScoutStep
+from pipepost.steps.transform import TransformStep
 from pipepost.steps.translate import TranslateStep
 from pipepost.steps.validate import ValidateStep
 
@@ -26,6 +27,7 @@ __all__ = [
     "RewriteStep",
     "ScoringStep",
     "ScoutStep",
+    "TransformStep",
     "TranslateStep",
     "ValidateStep",
 ]

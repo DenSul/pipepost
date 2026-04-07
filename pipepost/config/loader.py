@@ -129,6 +129,18 @@ class RewriteConfig(BaseModel):
     max_tokens: int = 16384
 
 
+class TransformConfig(BaseModel):
+    """Configuration for the fused transform step (translate+rewrite+adapt in one LLM call)."""
+
+    model: str = ""
+    translate: bool = True
+    rewrite: bool = False
+    adapt: bool = False
+    style: str = "blog"
+    creativity: float = 0.5
+    max_tokens: int = 16384
+
+
 class FilterConfig(BaseModel):
     """Configuration for the filter step."""
 
@@ -183,6 +195,7 @@ class PipePostConfig(BaseModel):
     validate_: ValidateConfig = Field(default_factory=ValidateConfig, alias="validate")
     flow: FlowConfig = Field(default_factory=FlowConfig)
     rewrite: RewriteConfig = Field(default_factory=RewriteConfig)
+    transform: TransformConfig = Field(default_factory=TransformConfig)
     verbose: bool = False
 
     model_config = {"populate_by_name": True}
