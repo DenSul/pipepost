@@ -568,7 +568,14 @@ destination:
   channels: ["telegram", "slack", "discord"]
 ```
 
-**As an OpenClaw skill** — see [examples/openclaw-skill/SKILL.md](examples/openclaw-skill/SKILL.md) for a ready-to-use skill that lets OpenClaw agents curate content via PipePost.
+**As a native plugin** — install the [openclaw-pipepost](https://github.com/DenSul/openclaw-pipepost) plugin for 5 native agent tools (`pipepost_run`, `pipepost_status`, `pipepost_init`, `pipepost_validate`, `pipepost_sources`):
+
+```bash
+pip install pipepost
+openclaw plugins install clawhub:openclaw-pipepost
+```
+
+Available on [ClawHub](https://clawhub.ai/plugins/openclaw-pipepost).
 
 ## Supported LLM Models
 
