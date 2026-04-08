@@ -101,9 +101,7 @@ class QualityGateStep(Step):
         # 3. Paragraph count
         paragraphs = [p.strip() for p in clean_content.split("\n\n") if p.strip()]
         if len(paragraphs) < self.min_paragraphs:
-            failures.append(
-                f"Too few paragraphs: {len(paragraphs)} (min {self.min_paragraphs})"
-            )
+            failures.append(f"Too few paragraphs: {len(paragraphs)} (min {self.min_paragraphs})")
 
         # 4. Code ratio
         code_ratio = self._code_ratio(content)
@@ -116,9 +114,7 @@ class QualityGateStep(Step):
         words = re.findall(r"[a-zA-Z\u0400-\u04FF]{3,}", clean_content.lower())
         unique_words = len(set(words))
         if unique_words < self.min_unique_words:
-            failures.append(
-                f"Too few unique words: {unique_words} (min {self.min_unique_words})"
-            )
+            failures.append(f"Too few unique words: {unique_words} (min {self.min_unique_words})")
 
         if failures:
             reason = "; ".join(failures)

@@ -187,11 +187,13 @@ class TransformStep(Step):
                     "REWRITE the article to make it 100% unique and "
                     "undetectable by plagiarism checkers"
                 )
-            rules.extend([
-                "Rephrase EVERY sentence — no phrases from the original",
-                "Change paragraph structure and ordering where logically possible",
-                "Use synonyms and alternative constructions throughout",
-            ])
+            rules.extend(
+                [
+                    "Rephrase EVERY sentence — no phrases from the original",
+                    "Change paragraph structure and ordering where logically possible",
+                    "Use synonyms and alternative constructions throughout",
+                ]
+            )
 
         # --- Adapt ---
         if self.do_adapt:
@@ -203,13 +205,15 @@ class TransformStep(Step):
             rules.append(f"Style: {style_instruction}")
 
         # --- Common rules ---
-        rules.extend([
-            "Keep the same meaning and factual accuracy",
-            "Keep all URLs, proper nouns, and domain-specific terminology unchanged",
-            "Keep markdown formatting",
-            "Output must be at least 80% of original length",
-            "Do NOT add disclaimers, notes, or commentary",
-        ])
+        rules.extend(
+            [
+                "Keep the same meaning and factual accuracy",
+                "Keep all URLs, proper nouns, and domain-specific terminology unchanged",
+                "Keep markdown formatting",
+                "Output must be at least 80% of original length",
+                "Do NOT add disclaimers, notes, or commentary",
+            ]
+        )
 
         ops_text = " → ".join(operations) if operations else "Process"
         rules_text = "\n".join(f"- {r}" for r in rules)
