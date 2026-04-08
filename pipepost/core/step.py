@@ -72,6 +72,21 @@ class StepBuildContext:
     # Images
     images_output_dir: str = "./output/images"
 
+    # Transform (fused step)
+    transform_model: str = ""
+    transform_translate: bool = True
+    transform_rewrite: bool = False
+    transform_adapt: bool = False
+    transform_style: str = "blog"
+    transform_creativity: float = 0.5
+
+    # Quality gate
+    qg_min_content_len: int = 500
+    qg_min_paragraphs: int = 3
+    qg_max_boilerplate_ratio: float = 0.4
+    qg_max_code_ratio: float = 0.7
+    qg_min_unique_words: int = 50
+
 
 class Step(ABC):
     """A single unit of work in a pipeline."""
